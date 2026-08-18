@@ -1,0 +1,18 @@
+{
+  "name": "lexconnect-bd",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": ["client", "server"],
+  "scripts": {
+    "dev": "concurrently -n API,WEB -c blue,green \"npm run dev -w server\" \"npm run dev -w client\"",
+    "build": "npm run build -w client",
+    "start": "npm run start -w server",
+    "seed": "npm run seed -w server",
+    "check": "npm run verify:source && npm run check -w server && npm run build -w client",
+    "verify:source": "node scripts/verify-source.mjs"
+  },
+  "devDependencies": {
+    "@babel/parser": "^7.28.0",
+    "concurrently": "^9.1.2"
+  }
+}
