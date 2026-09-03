@@ -1,29 +1,60 @@
-import dns from "node:dns";
-dns.setServers(["1.1.1.1", "1.0.0.1"]);
 import 'dotenv/config';
-import app from './app.js';
+import express from 'express';
+import cors from 'cors';
+import mongoose from 'mongoose';
+import dns from 'node:dns';
+import Service from './models/Service.js';
 
-import { connectDatabase, disconnectDatabase } from './config/db.js';
+// Needed on my network so Node can resolve MongoDB Atlas
+dns.setServers(['1.1.1.1', '1.0.0.1']);
 
-const port = Number(process.env.PORT) || 5000;
+const app = express();    //backend application
 
-async function start() {
-  if (!process.env.MONGODB_URI) throw new Error('MONGODB_URI is missing. Copy server/.env.example to server/.env.');
-  if (!process.env.JWT_SECRET) throw new Error('JWT_SECRET is missing. Copy server/.env.example to server/.env.');
-  await connectDatabase();
-  const server = app.listen(port, () => console.log(`LexConnect API listening on http://localhost:${port}`));
+const PORT = process.env.PORT || 5000;
+const MONGODB_URI = process.env.MONGODB_URI;
 
-  const shutdown = async () => {
-    server.close(async () => {
-      await disconnectDatabase();
-      process.exit(0);
+app.use(cors());    //enable cross origin requests
+app.use(express.json());    //Express understands json sent by frontend
+
+app.get('/api/health', (req, res) => {    // first route
+    res.json({
+        success: true,
+        message: 'LexConnect API is running'
     });
-  };
-  process.on('SIGINT', shutdown);
-  process.on('SIGTERM', shutdown);
+});
+
+app.get('/api/services', async (req, res) => {
+    try {
+        const services = await Service.find();    //Read operation
+
+        res.json({
+            success: true,
+            items: services
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+});
+
+app.get('/', (req, res) => {
+    res.send('LexConnect backend is running');
+});
+async function startServer() {
+    try {
+        await mongoose.connect(MONGODB_URI);
+
+        console.log('MongoDB connected');
+
+        app.listen(PORT, () => {    // after MONGODB connects we start EXPRESS
+            console.log(`Server running on http://localhost:${PORT}`);
+        });
+
+    } catch (error) {
+        console.error('Database connection failed:', error.message);
+    }
 }
 
-start().catch((error) => {
-  console.error(error);
-  process.exit(1);
-});
+startServer();

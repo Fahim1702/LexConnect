@@ -1,23 +1,27 @@
 import mongoose from 'mongoose';
-import { slugify } from '../utils/slugify.js';
 
-const serviceSchema = new mongoose.Schema(
-  {
-    title: { type: String, required: true, trim: true, maxlength: 120 },
-    slug: { type: String, unique: true, index: true },
-    category: { type: String, required: true, trim: true, index: true },
-    summary: { type: String, required: true, maxlength: 240 },
-    description: { type: String, required: true, maxlength: 5000 },
-    icon: { type: String, default: 'Scale' },
-    isFeatured: { type: Boolean, default: false },
-    isActive: { type: Boolean, default: true }
-  },
-  { timestamps: true }
-);
+const serviceSchema = new mongoose.Schema({  // defines the structure of a legal service document
+    title: {
+        type: String,
+        required: true
+    },
 
-serviceSchema.pre('validate', function createSlug(next) {
-  if (this.isModified('title') || !this.slug) this.slug = slugify(this.title);
-  next();
+    category: {
+        type: String,
+        required: true
+    },
+
+    description: {
+        type: String,
+        required: true
+    },
+
+    isActive: {
+        type: Boolean,
+        default: true
+    }
 });
 
-export default mongoose.model('Service', serviceSchema);
+const Service = mongoose.model('Service', serviceSchema);
+
+export default Service;
