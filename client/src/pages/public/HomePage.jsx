@@ -1,25 +1,262 @@
-import { useEffect, useState } from 'react';
-import { ArrowRight, BadgeCheck, BriefcaseBusiness, Building2, HeartHandshake, Landmark, ReceiptText, Scale, ShieldCheck, Star } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import api from '../../api/client.js';
-import { ErrorAlert, Loading } from '../../components/Ui.jsx';
 
-const icons = { Building2, HeartHandshake, Landmark, ShieldCheck, ReceiptText, BriefcaseBusiness, Scale };
+const services = [
+  {
+    id: 1,
+    title: 'Family Law',
+    description:
+      'Get legal guidance for marriage, divorce, child custody and other family matters.'
+  },
+  {
+    id: 2,
+    title: 'Property Law',
+    description:
+      'Find legal assistance for property ownership, land disputes and documentation.'
+  },
+  {
+    id: 3,
+    title: 'Business Law',
+    description:
+      'Get support for contracts, business registration and commercial legal issues.'
+  }
+];
+
+const lawyers = [
+  {
+    id: 1,
+    name: 'Ahsan Rahman',
+    specialization: 'Family Law',
+    experience: 8
+  },
+  {
+    id: 2,
+    name: 'Nadia Islam',
+    specialization: 'Property Law',
+    experience: 6
+  },
+  {
+    id: 3,
+    name: 'Farhan Ahmed',
+    specialization: 'Business Law',
+    experience: 10
+  }
+];
 
 export default function HomePage() {
-  const [data, setData] = useState(null);
-  const [error, setError] = useState('');
-  useEffect(() => { api.get('/public/home').then((res) => setData(res.data.data)).catch((err) => setError(err.message)); }, []);
-  return <>
-    <section className="relative overflow-hidden bg-ink text-white">
-      <div className="absolute inset-0 opacity-20 [background-image:radial-gradient(circle_at_70%_20%,#c89b52_0,transparent_28%),radial-gradient(circle_at_20%_80%,#3e8069_0,transparent_32%)]" />
-      <div className="container-page relative grid min-h-[650px] items-center gap-12 py-20 lg:grid-cols-[1.1fr_.9fr]">
-        <div><p className="eyebrow">Legal help, made clearer</p><h1 className="max-w-3xl font-display text-5xl font-bold leading-tight sm:text-6xl">Trusted legal support for life and business.</h1><p className="mt-6 max-w-2xl text-lg leading-8 text-white/70">Explore services, meet experienced lawyers, and submit a consultation request through one simple platform.</p><div className="mt-8 flex flex-wrap gap-3"><Link className="btn-primary !bg-gold !text-ink hover:!bg-white" to="/consultation">Request consultation <ArrowRight size={18} /></Link><Link className="btn-secondary !border-white/40 !text-white hover:!bg-white/10" to="/lawyers">Find a lawyer</Link></div><div className="mt-9 flex flex-wrap gap-6 text-sm text-white/70"><span className="flex gap-2"><BadgeCheck className="text-gold" size={19} />Role-verified profiles</span><span className="flex gap-2"><BadgeCheck className="text-gold" size={19} />Trackable requests</span></div></div>
-        <div className="relative hidden lg:block"><div className="mx-auto aspect-square max-w-md rounded-[3rem] border border-white/10 bg-white/5 p-10 shadow-2xl backdrop-blur"><Scale className="h-full w-full text-gold/70" strokeWidth={0.7} /></div><div className="absolute -bottom-5 -left-4 rounded-2xl bg-white p-5 text-ink shadow-soft"><p className="text-3xl font-bold text-forest">{data?.stats?.lawyerCount ?? '—'}+</p><p className="text-sm text-slate-500">Active lawyers</p></div></div>
-      </div>
-    </section>
-    <section className="section-pad"><div className="container-page"><p className="eyebrow">Practice areas</p><div className="flex items-end justify-between gap-5"><h2 className="page-title max-w-2xl">Legal services for the moments that matter</h2><Link className="hidden font-bold text-forest sm:block" to="/services">View all services →</Link></div>{error && <div className="mt-8"><ErrorAlert message={error} /></div>}{!data && !error ? <Loading /> : <div className="mt-10 grid gap-5 md:grid-cols-2 lg:grid-cols-3">{data?.services?.map((service) => { const Icon = icons[service.icon] || Scale; return <Link className="card group transition hover:-translate-y-1 hover:shadow-soft" key={service._id} to={`/services/${service.slug}`}><span className="inline-flex rounded-xl bg-sage p-3 text-forest"><Icon /></span><h3 className="mt-5 text-xl font-bold group-hover:text-forest">{service.title}</h3><p className="mt-3 leading-7 text-slate-600">{service.summary}</p><span className="mt-5 inline-flex items-center gap-1 text-sm font-bold text-forest">Learn more <ArrowRight size={15} /></span></Link>; })}</div>}</div></section>
-    <section className="section-pad bg-white"><div className="container-page"><p className="eyebrow">Our professionals</p><h2 className="page-title">Meet the legal team</h2><div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">{data?.lawyers?.map((lawyer) => <Link className="card group" key={lawyer._id} to={`/lawyers/${lawyer.slug}`}><div className="flex h-24 w-24 items-center justify-center rounded-2xl bg-forest text-3xl font-bold text-white">{lawyer.user?.name?.split(' ').filter((word) => word.length > 2).slice(0, 2).map((word) => word[0]).join('')}</div><h3 className="mt-5 text-xl font-bold group-hover:text-forest">{lawyer.user?.name}</h3><p className="text-sm font-semibold text-gold">{lawyer.designation}</p><p className="mt-3 line-clamp-3 text-sm leading-6 text-slate-600">{lawyer.bio}</p><p className="mt-4 text-sm font-bold text-forest">{lawyer.experienceYears} years experience</p></Link>)}</div></div></section>
-    <section className="section-pad bg-sage"><div className="container-page grid gap-10 lg:grid-cols-2"><div><p className="eyebrow">Client feedback</p><h2 className="page-title">A clearer path forward</h2><p className="mt-5 max-w-lg leading-7 text-slate-600">Approved testimonials appear only after a resolved consultation and admin review.</p></div><div className="grid gap-4">{data?.testimonials?.map((item) => <blockquote className="card" key={item._id}><div className="flex gap-1 text-gold">{Array.from({ length: item.rating }, (_, i) => <Star key={i} size={17} fill="currentColor" />)}</div><p className="mt-4 leading-7 text-slate-700">“{item.comment}”</p><footer className="mt-4 text-sm font-bold">{item.client?.name}</footer></blockquote>)}</div></div></section>
-  </>;
+  return (
+    <>
+      {/* Hero Section */}
+      <section className="bg-slate-900 py-24 text-white">
+        <div className="container-page">
+
+          <h1 className="max-w-3xl text-4xl font-bold md:text-5xl">
+            Find the legal help you need
+          </h1>
+
+          <p className="mt-5 max-w-2xl text-lg text-gray-300">
+            LexConnect helps people find legal services, browse lawyer
+            profiles and request consultations through one platform.
+          </p>
+
+          <div className="mt-8 flex flex-wrap gap-4">
+
+            <Link
+              to="/consultation"
+              className="rounded bg-blue-700 px-5 py-3 font-semibold text-white"
+            >
+              Request Consultation
+            </Link>
+
+            <Link
+              to="/lawyers"
+              className="rounded border border-white px-5 py-3 font-semibold"
+            >
+              Find a Lawyer
+            </Link>
+
+          </div>
+
+        </div>
+      </section>
+
+      {/* Services Section */}
+      <section className="py-16">
+        <div className="container-page">
+
+          <div className="flex items-center justify-between">
+            <h2 className="text-3xl font-bold">
+              Legal Services
+            </h2>
+
+            <Link
+              to="/services"
+              className="font-semibold text-blue-700"
+            >
+              View All
+            </Link>
+          </div>
+
+          <div className="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+
+            {services.map((service) => (
+              <div
+                key={service.id}
+                className="rounded-lg border bg-white p-6 shadow-sm"
+              >
+                <h3 className="text-xl font-semibold">
+                  {service.title}
+                </h3>
+
+                <p className="mt-3 text-gray-600">
+                  {service.description}
+                </p>
+
+                <Link
+                  to="/services"
+                  className="mt-5 inline-block font-semibold text-blue-700"
+                >
+                  Learn More
+                </Link>
+              </div>
+            ))}
+
+          </div>
+
+        </div>
+      </section>
+
+      {/* Lawyers Section */}
+      <section className="bg-gray-100 py-16">
+        <div className="container-page">
+
+          <div className="flex items-center justify-between">
+            <h2 className="text-3xl font-bold">
+              Featured Lawyers
+            </h2>
+
+            <Link
+              to="/lawyers"
+              className="font-semibold text-blue-700"
+            >
+              View All
+            </Link>
+          </div>
+
+          <div className="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+
+            {lawyers.map((lawyer) => (
+              <div
+                key={lawyer.id}
+                className="rounded-lg bg-white p-6 shadow-sm"
+              >
+                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-blue-700 text-xl font-bold text-white">
+                  {lawyer.name.charAt(0)}
+                </div>
+
+                <h3 className="mt-4 text-xl font-semibold">
+                  {lawyer.name}
+                </h3>
+
+                <p className="mt-1 text-blue-700">
+                  {lawyer.specialization}
+                </p>
+
+                <p className="mt-2 text-sm text-gray-600">
+                  {lawyer.experience} years of experience
+                </p>
+
+                <Link
+                  to="/lawyers"
+                  className="mt-5 inline-block font-semibold text-blue-700"
+                >
+                  View Profile
+                </Link>
+              </div>
+            ))}
+
+          </div>
+
+        </div>
+      </section>
+
+      {/* How It Works */}
+      <section className="py-16">
+        <div className="container-page">
+
+          <h2 className="text-center text-3xl font-bold">
+            How LexConnect Works
+          </h2>
+
+          <div className="mt-10 grid gap-6 md:grid-cols-3">
+
+            <div className="text-center">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-blue-700 font-bold text-white">
+                1
+              </div>
+
+              <h3 className="mt-4 font-semibold">
+                Explore Legal Services
+              </h3>
+
+              <p className="mt-2 text-gray-600">
+                Browse legal services based on your needs.
+              </p>
+            </div>
+
+            <div className="text-center">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-blue-700 font-bold text-white">
+                2
+              </div>
+
+              <h3 className="mt-4 font-semibold">
+                Find a Lawyer
+              </h3>
+
+              <p className="mt-2 text-gray-600">
+                View lawyer profiles and specializations.
+              </p>
+            </div>
+
+            <div className="text-center">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-blue-700 font-bold text-white">
+                3
+              </div>
+
+              <h3 className="mt-4 font-semibold">
+                Request Consultation
+              </h3>
+
+              <p className="mt-2 text-gray-600">
+                Submit a consultation request through the platform.
+              </p>
+            </div>
+
+          </div>
+
+        </div>
+      </section>
+
+      {/* CTA */}
+      <section className="bg-blue-700 py-14 text-white">
+        <div className="container-page text-center">
+
+          <h2 className="text-3xl font-bold">
+            Need legal assistance?
+          </h2>
+
+          <p className="mt-3">
+            Submit a consultation request and connect with a lawyer.
+          </p>
+
+          <Link
+            to="/consultation"
+            className="mt-6 inline-block rounded bg-white px-5 py-3 font-semibold text-blue-700"
+          >
+            Request Consultation
+          </Link>
+
+        </div>
+      </section>
+    </>
+  );
 }
