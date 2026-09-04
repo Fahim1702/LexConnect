@@ -39,6 +39,22 @@ app.get('/api/services', async (req, res) => {
     }
 });
 
+app.post('/api/services', async (req, res) => {     // CREATE OP
+    try {
+        const service = await Service.create(req.body);
+
+        res.status(201).json({
+            success: true,
+            item: service
+        });
+    } catch (error) {
+        res.status(400).json({
+            success: false,
+            message: error.message
+        });
+    }
+});
+
 app.get('/', (req, res) => {
     res.send('LexConnect backend is running');
 });
