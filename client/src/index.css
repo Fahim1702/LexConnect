@@ -8,12 +8,15 @@
   body { @apply m-0 bg-cream font-sans text-ink antialiased; }
   h1, h2, h3, h4 { @apply font-display; }
   button, input, select, textarea { font: inherit; }
+  a, button, input, select, textarea, summary { @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2; }
+  ::selection { @apply bg-gold/30 text-ink; }
 }
 
 @layer components {
   .container-page { @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8; }
   .section-pad { @apply py-14 sm:py-20; }
   .card { @apply rounded-2xl border border-slate-200 bg-white p-6 shadow-sm; }
+  .interactive-card { @apply rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition duration-300 hover:-translate-y-1 hover:border-gold/40 hover:shadow-soft; }
   .btn-primary { @apply inline-flex items-center justify-center gap-2 rounded-xl bg-forest px-5 py-3 font-semibold text-white transition hover:bg-ink disabled:cursor-not-allowed disabled:opacity-60; }
   .btn-secondary { @apply inline-flex items-center justify-center gap-2 rounded-xl border border-forest px-5 py-3 font-semibold text-forest transition hover:bg-sage; }
   .btn-danger { @apply inline-flex items-center justify-center rounded-lg bg-red-600 px-3 py-2 text-sm font-semibold text-white hover:bg-red-700; }
@@ -26,4 +29,8 @@
   .data-table { @apply min-w-full divide-y divide-slate-200 text-sm; }
   .data-table th { @apply bg-slate-50 px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-slate-500; }
   .data-table td { @apply px-4 py-4 align-top text-slate-700; }
+  .public-hero { @apply relative overflow-hidden bg-ink text-white; }
+  .public-hero::before { content: ''; @apply absolute inset-0 opacity-25; background-image: radial-gradient(circle at 82% 10%, #c89b52 0, transparent 25%), radial-gradient(circle at 10% 100%, #3e8069 0, transparent 35%); }
+  .filter-panel { @apply rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5; }
+  .skip-link { @apply fixed left-4 top-4 z-[100] -translate-y-24 rounded-lg bg-gold px-4 py-2 font-bold text-ink transition focus:translate-y-0; }
 }
