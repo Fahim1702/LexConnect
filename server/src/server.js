@@ -38,6 +38,35 @@ app.get('/api/services', async (req, res) => {
         });
     }
 });
+app.get('/api/services/:id', async (req, res) => {
+    try {
+        const service = await Service.findById(req.params.id);
+
+        if (!service) {
+            return res.status(404).json({
+                success: false,
+                message: 'Service not found'
+            });
+        }
+
+        res.json({
+            success: true,
+            item: service
+        });
+    } catch (error) {
+        if (error.name === 'CastError') {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid service ID'
+            });
+        }
+
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch service'
+        });
+    }
+});
 
 app.post('/api/services', async (req, res) => {     // CREATE OP
     try {
@@ -51,6 +80,49 @@ app.post('/api/services', async (req, res) => {     // CREATE OP
         res.status(400).json({
             success: false,
             message: error.message
+        });
+    }
+});
+
+app.put('/api/services/:id', async (req, res) => {
+    if (!mongoose.isObjectIdOrHexString(req.params.id)) {
+        return res.status(400).json({
+            success: false,
+            message: 'Invalid service ID'
+        });
+    }
+
+    try {
+        // Only allow changes to the editable service fields.
+        const { title, category, description, isActive } = req.body || {};
+        const service = await Service.findByIdAndUpdate(
+            req.params.id,
+            { $set: { title, category, description, isActive } },
+            { new: true, runValidators: true }
+        );
+
+        if (!service) {
+            return res.status(404).json({
+                success: false,
+                message: 'Service not found'
+            });
+        }
+
+        res.json({
+            success: true,
+            item: service
+        });
+    } catch (error) {
+        if (error.name === 'ValidationError' || error.name === 'CastError') {
+            return res.status(400).json({
+                success: false,
+                message: error.message
+            });
+        }
+
+        res.status(500).json({
+            success: false,
+            message: 'Failed to update service'
         });
     }
 });
