@@ -78,4 +78,24 @@ Malformed IDs or invalid data return 400; missing records return 404. Unknown ro
 
 ## Pending integration
 
-`/lawyer/*`, `/admin/*` and client testimonial routes are not mounted yet. The existing management routes listed above are protected with Firebase verification and the MongoDB admin role. Lawyer/admin dashboard wiring, assignment and testimonials remain pending.
+Lawyer routes, admin content/user management, lawyer profile provisioning and testimonial routes are not mounted yet.
+
+## Admin overview and consultation assignment
+
+All routes below require an active administrator verified through Firebase.
+
+- GET /admin/overview: `{ success, stats, recent }` for the admin landing page.
+- GET /admin/lawyers: `{ success, items }` containing eligible active lawyer profiles with active Firebase-linked lawyer accounts.
+- GET /admin/consultations: `{ success, items }`; optional `status` filter. Includes client, service, preferred-lawyer and assigned-lawyer details.
+- PATCH /admin/consultations/:id: accepts only `assignedLawyer`, `status` and `adminNote`.
+- DELETE /admin/consultations/:id: marks the request `cancelled` and preserves the record and its history.
+
+Assignment example:
+
+```json
+{ "assignedLawyer": "COPY_A_LAWYER_PROFILE_ID", "adminNote": "Please review this request." }
+```
+
+Assigning a pending request changes its status to `assigned` unless an explicit status is supplied. Empty string or null unassigns it; an `assigned` request then returns to `pending` unless another status is supplied. `assigned` requires a lawyer. Invalid, inactive, non-lawyer and unmigrated accounts are rejected. Admin notes are limited to 3000 characters.
+
+Status/assignment changes record the acting user's ID and time. Clients see the assigned lawyer's name but not admin notes or internal history. Concurrent edits to the same request return 409 rather than overwriting a newer change. The earlier PUT /consultations/:id status endpoint uses the same validation and history handling.

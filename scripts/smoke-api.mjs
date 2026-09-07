@@ -146,6 +146,66 @@ try {
   assert.equal(profile.email, identities.client.email);
   console.log('PASS: clients can only read/cancel their own pending requests and edit allowed profile fields.');
 
+  for (const path of ['/admin/overview', '/admin/lawyers', '/admin/consultations']) {
+    await request(path, 'GET', undefined, 401, null);
+    await request(path, 'GET', undefined, 403, 'client');
+  }
+  const overview = await request('/admin/overview', 'GET', undefined, 200, 'admin');
+  assert.equal(overview.stats.users, await User.countDocuments());
+  assert.ok(Array.isArray(overview.recent));
+  assert.ok((await request('/admin/lawyers', 'GET', undefined, 200, 'admin')).items.some(item => item._id === String(lawyer._id)));
+  const assignable = (await request('/consultations', 'POST', payload, 201, 'client')).request;
+  const adminPath = `/admin/consultations/${assignable._id}`;
+  await request(adminPath, 'PATCH', { assignedLawyer: lawyer._id }, 403, 'client');
+  await request(adminPath, 'DELETE', undefined, 403, 'client');
+  await request(adminPath, 'PATCH', { status: 'assigned' }, 400, 'admin');
+  await request(`/consultations/${assignable._id}`, 'PUT', { status: 'assigned' }, 400, 'admin');
+  for (const invalid of [{ assignedLawyer: 'abc' }, { assignedLawyer: String(new mongoose.Types.ObjectId()) }, { status: 'unknown' }, { adminNote: {} }, { guestEmail: 'not-editable@example.test' }]) {
+    await request(adminPath, 'PATCH', invalid, 400, 'admin');
+  }
+  await User.findByIdAndUpdate(user._id, { isActive: false });
+  await request(adminPath, 'PATCH', { assignedLawyer: lawyer._id }, 400, 'admin');
+  assert.equal((await request('/admin/lawyers', 'GET', undefined, 200, 'admin')).items.length, 0);
+  await User.findByIdAndUpdate(user._id, { isActive: true, role: 'client' });
+  await request(adminPath, 'PATCH', { assignedLawyer: lawyer._id }, 400, 'admin');
+  await User.findByIdAndUpdate(user._id, { role: 'lawyer' });
+  await User.findByIdAndUpdate(user._id, { $unset: { firebaseUid: 1 } });
+  await request(adminPath, 'PATCH', { assignedLawyer: lawyer._id }, 400, 'admin');
+  await User.findByIdAndUpdate(user._id, { firebaseUid: 'smoke-lawyer' });
+  await Lawyer.findByIdAndUpdate(lawyer._id, { isActive: false });
+  await request(adminPath, 'PATCH', { assignedLawyer: lawyer._id }, 400, 'admin');
+  await Lawyer.findByIdAndUpdate(lawyer._id, { isActive: true });
+  assert.equal((await ConsultationRequest.findById(assignable._id)).status, 'pending');
+  const assigned = (await request(adminPath, 'PATCH', { assignedLawyer: String(lawyer._id), adminNote: 'Internal test note', client: user._id }, 200, 'admin')).item;
+  assert.equal(assigned.status, 'assigned');
+  assert.equal(assigned.assignedLawyer.user.name, user.name);
+  assert.equal(assigned.client, client.id);
+  assert.equal(assigned.statusHistory.at(-1).changedBy, String((await User.findOne({ firebaseUid: identities.admin.uid }))._id));
+  const listed = (await request('/admin/consultations?status=assigned', 'GET', undefined, 200, 'admin')).items;
+  assert.ok(listed.some(item => item._id === assignable._id));
+  await request('/admin/consultations?status=invalid', 'GET', undefined, 400, 'admin');
+  const clientView = (await request('/client/consultations', 'GET', undefined, 200, 'client')).items.find(item => item._id === assignable._id);
+  assert.equal(clientView.assignedLawyer.user.name, user.name);
+  assert.equal(clientView.adminNote, undefined);
+  assert.equal(clientView.statusHistory, undefined);
+  await request(`/client/consultations/${assignable._id}/cancel`, 'PATCH', {}, 400, 'client');
+  const unassigned = (await request(adminPath, 'PATCH', { assignedLawyer: '' }, 200, 'admin')).item;
+  assert.equal(unassigned.status, 'pending');
+  assert.equal(unassigned.assignedLawyer, undefined);
+  const stale = await ConsultationRequest.findById(assignable._id);
+  await request(`/client/consultations/${assignable._id}/cancel`, 'PATCH', {}, 200, 'client');
+  stale.status = 'assigned';
+  stale.assignedLawyer = lawyer._id;
+  await assert.rejects(stale.save(), error => error.name === 'VersionError');
+  const beforeCancel = await ConsultationRequest.countDocuments();
+  await request(adminPath, 'DELETE', undefined, 200, 'admin');
+  await request(`/admin/consultations/${created._id}`, 'DELETE', undefined, 200, 'admin');
+  assert.equal(await ConsultationRequest.countDocuments(), beforeCancel);
+  assert.equal((await ConsultationRequest.findById(created._id)).status, 'cancelled');
+  await request('/admin/consultations/abc', 'PATCH', { status: 'pending' }, 400, 'admin');
+  await request(`/admin/consultations/${new mongoose.Types.ObjectId()}`, 'PATCH', { status: 'pending' }, 404, 'admin');
+  console.log('PASS: admin overview, validated assignment/unassignment, history, client visibility, retained cancellations and conflicting-update protection.');
+
   await User.collection.insertOne({ name: 'Legacy Admin', email: identities.collision.email, role: 'admin', isActive: true });
   await request('/auth/sync', 'POST', {}, 409, 'collision');
   assert.equal(await User.countDocuments({ firebaseUid: identities.collision.uid }), 0);

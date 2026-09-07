@@ -9,7 +9,8 @@ A React, Express and MongoDB course project, currently being rebuilt in small, e
 - Firebase email/password registration, sign-in, sign-out and MongoDB profile synchronization, once the team configures Firebase.
 - Client profile editing and viewing/cancelling owned pending consultations.
 - Admin-only service CRUD and consultation list/read/status-update APIs.
-- Lawyer/admin dashboard integration, assignment and testimonials remain separate checkpoints. Their older files are not all connected yet.
+- Admin overview and consultation management, including validated lawyer assignment and cancellation history.
+- Lawyer dashboard, admin content/user management and testimonials remain separate checkpoints. Their older files are not all connected yet.
 
 The running backend is `server/src/server.js`. It mounts the existing public routes and retains the CRUD routes built during the lab. `server/src/app.js` is the older full-app assembly and is not the current entry point.
 
@@ -65,7 +66,7 @@ npm run test:integration
 | Browser shows Network Error | Confirm the API health URL responds and `CLIENT_URL` exactly matches the browser origin. |
 | No services | Run the optional starter seed against your own development database. |
 | Sign-in is unavailable | Complete the Firebase setup guide and restart both processes. |
-| Lawyer/admin dashboard requests fail | Those dashboard integrations remain pending; the basic client request/profile pages are connected. |
+| Some dashboard sections return 404 | Admin overview/consultations and client requests/profile are connected. Lawyer dashboard, admin content/users and testimonials remain pending. |
 | Teammates still get missing public routes | Confirm they have the integration commit from `backend-auth`; installing dependencies alone does not update their branch. |
 
 ## Team workflow

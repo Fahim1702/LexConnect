@@ -9,6 +9,8 @@ import ConsultationRequest from './models/ConsultationRequest.js';
 import Lawyer from './models/Lawyer.js';
 import publicRoutes from './routes/publicRoutes.js';
 import authRoutes from './routes/authRoutes.js';
+import adminRoutes from './routes/adminRoutes.js';
+import { updateConsultation } from './controllers/adminController.js';
 import clientRoutes from './routes/clientRoutes.js';
 import { protect, authorize, optionalAuth } from './middleware/auth.js';
 import { connectDatabase } from './config/db.js';
@@ -23,6 +25,7 @@ app.use(express.json());    //Express understands json sent by frontend
 app.use('/api/public', publicRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/client', clientRoutes);
+app.use('/api/admin', adminRoutes);
 
 app.get('/api/health', (req, res) => {    // first route
     res.json({
@@ -209,6 +212,7 @@ app.post('/api/consultations', optionalAuth, async (req, res) => {
 
         const request = await ConsultationRequest.create({
             client: req.user?.role === 'client' ? req.user._id : undefined,
+            statusHistory: [{ status: 'pending', changedBy: req.user?._id }],
             guestName,
             guestEmail,
             guestPhone,
@@ -289,55 +293,10 @@ app.get('/api/consultations/:id', protect, authorize('admin'), async (req, res) 
     }
 });
 
-app.put('/api/consultations/:id', protect, authorize('admin'), async (req, res) => {
-    if (!mongoose.isObjectIdOrHexString(req.params.id)) {
-        return res.status(400).json({
-            success: false,
-            message: 'Invalid consultation ID'
-        });
-    }
-
-    const { status } = req.body || {};
-
-    if (typeof status !== 'string' || !status.trim()) {
-        return res.status(400).json({
-            success: false,
-            message: 'Status is required and must be a non-empty string'
-        });
-    }
-
-    try {
-        // Only status can change here; the schema checks its allowed values.
-        const request = await ConsultationRequest.findByIdAndUpdate(
-            req.params.id,
-            { $set: { status } },
-            { new: true, runValidators: true }
-        ).populate('service', 'title category');
-
-        if (!request) {
-            return res.status(404).json({
-                success: false,
-                message: 'Consultation request not found'
-            });
-        }
-
-        res.json({
-            success: true,
-            item: request
-        });
-    } catch (error) {
-        if (error.name === 'ValidationError' || error.name === 'CastError') {
-            return res.status(400).json({
-                success: false,
-                message: error.message
-            });
-        }
-
-        res.status(500).json({
-            success: false,
-            message: 'Failed to update consultation request'
-        });
-    }
+// Keep the earlier status endpoint consistent with admin validation and history.
+app.put('/api/consultations/:id', protect, authorize('admin'), (req, res, next) => {
+    req.body = { status: req.body?.status };
+    return updateConsultation(req, res, next);
 });
 
 app.get('/', (req, res) => {

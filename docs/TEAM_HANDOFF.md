@@ -31,7 +31,7 @@ The public pages can load an empty database. Add public records when needed; the
 
 ## Still pending
 
-Follow [Firebase setup](FIREBASE_SETUP.md) before testing login. Lawyer/admin dashboards, consultation assignment and testimonials remain separate coding checkpoints. The older controllers, routes and `server/src/app.js` are not automatically active. Old password-based demo accounts must be migrated explicitly; the API never links them to Firebase by email alone.
+Follow [Firebase setup](FIREBASE_SETUP.md) before testing login. The admin overview and consultation assignment page now work with active Firebase-linked lawyer accounts. Lawyer dashboard, admin content/user management and testimonials remain separate coding checkpoints. The older controllers and `server/src/app.js` are not automatically active. Old password-based demo accounts must be migrated explicitly; the API never links them to Firebase by email alone.
 
 ## Before sharing a checkpoint
 

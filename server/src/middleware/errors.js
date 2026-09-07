@@ -20,6 +20,10 @@ export function errorHandler(error, _req, res, _next) {
     statusCode = 400;
     message = 'The supplied record ID is invalid.';
   }
+  if (error.name === 'VersionError') {
+    statusCode = 409;
+    message = 'This request changed while you were editing it. Refresh and try again.';
+  }
   if (['JsonWebTokenError', 'TokenExpiredError'].includes(error.name)) {
     statusCode = 401;
     message = 'Your session is invalid or has expired.';

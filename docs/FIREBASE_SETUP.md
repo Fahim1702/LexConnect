@@ -62,7 +62,7 @@ Restart both processes after environment changes. Public pages load without Fire
 
 Every new synchronized account is a client, even if a request body claims `role: admin`. Roles are read from MongoDB on each protected request; Firebase console membership does not make an application user an admin.
 
-For an initial administrator, a trusted project maintainer can locate their own newly registered record by its **exact Firebase UID** in MongoDB Compass and set `role` to `admin`, then sign in again. Do not promote arbitrary users or create a public role-changing endpoint. The admin-specific dashboard routes are a later checkpoint; the protected management APIs already recognize this role.
+For an initial administrator, a trusted project maintainer can locate their own newly registered record by its **exact Firebase UID** in MongoDB Compass and set `role` to `admin`, then sign in again. Do not promote arbitrary users or create a public role-changing endpoint. The admin overview and consultation management pages are connected. The assignment menu uses existing active lawyer profiles with active Firebase-linked accounts; lawyer profile provisioning is a later checkpoint.
 
 Old MongoDB accounts without `firebaseUid` are not automatically linked by email. If an old email conflicts, a maintainer must verify ownership and deliberately migrate that record while preserving its `_id` and relationships. Old passwords are not accepted by Firebase, and old guest consultations are not claimed by email.
 
@@ -74,7 +74,7 @@ Old MongoDB accounts without `firebaseUid` are not automatically linked by email
 - Admin protection for service CRUD and consultation management.
 - Signed-in client ownership, viewing requests, pending cancellation and profile editing.
 
-Lawyer/admin dashboard integration, lawyer assignment, testimonials and service-deletion integrity remain later tasks.
+Admin overview, lawyer assignment and consultation cancellation are also connected. Lawyer dashboard, admin content/user management, testimonials and service-deletion integrity remain later tasks.
 
 ## Automated checks and limits
 

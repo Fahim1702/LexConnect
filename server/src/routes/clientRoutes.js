@@ -10,7 +10,9 @@ router.use(protect, authorize('client'));
 
 router.get('/consultations', asyncHandler(async (req, res) => {
   const items = await ConsultationRequest.find({ client: req.user._id })
-    .populate('service', 'title').sort('-createdAt');
+    .select('-adminNote -statusHistory')
+    .populate('service', 'title')
+    .populate({ path: 'assignedLawyer', populate: { path: 'user', select: 'name' } }).sort('-createdAt');
   res.json({ success: true, items });
 }));
 
@@ -19,9 +21,9 @@ router.patch('/consultations/:id/cancel', asyncHandler(async (req, res) => {
   // Ownership and pending status are checked in the same database update.
   const item = await ConsultationRequest.findOneAndUpdate(
     { _id: req.params.id, client: req.user._id, status: 'pending' },
-    { $set: { status: 'cancelled' } },
+    { $set: { status: 'cancelled' }, $inc: { __v: 1 }, $push: { statusHistory: { status: 'cancelled', changedBy: req.user._id } } },
     { new: true, runValidators: true }
-  );
+  ).select('-adminNote -statusHistory');
   if (!item) {
     const owned = await ConsultationRequest.exists({ _id: req.params.id, client: req.user._id });
     if (!owned) throw new ApiError(404, 'Consultation request not found');

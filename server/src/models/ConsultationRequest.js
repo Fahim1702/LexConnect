@@ -52,6 +52,16 @@ const consultationRequestSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Lawyer'
     },
+    assignedLawyer: { type: mongoose.Schema.Types.ObjectId, ref: 'Lawyer' },
+    adminNote: { type: String, maxlength: 3000 },
+    statusHistory: [{
+      _id: false,
+      status: { type: String, required: true },
+      changedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+      assignedLawyer: { type: mongoose.Schema.Types.ObjectId, ref: 'Lawyer' },
+      note: String,
+      changedAt: { type: Date, default: Date.now }
+    }],
     status: {
       type: String,
       enum: ['pending', 'assigned', 'in-review', 'scheduled', 'resolved', 'cancelled'],
@@ -59,7 +69,7 @@ const consultationRequestSchema = new mongoose.Schema(
     }
   },
   // Mongoose adds createdAt and updatedAt when documents are saved.
-  { timestamps: true }
+  { timestamps: true, optimisticConcurrency: true }
 );
 
 const ConsultationRequest = mongoose.model('ConsultationRequest', consultationRequestSchema);

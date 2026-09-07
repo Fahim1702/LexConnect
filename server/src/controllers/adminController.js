@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import User from '../models/User.js';
 import Lawyer from '../models/Lawyer.js';
 import Service from '../models/Service.js';
@@ -64,7 +65,8 @@ export const deleteResource = asyncHandler(async (req, res) => {
 });
 
 export const listLawyers = asyncHandler(async (_req, res) => {
-  const items = await Lawyer.find().populate('user', 'name email phone isActive').populate('services', 'title');
+  const lawyers = await Lawyer.find({ isActive: true }).populate('user', 'name email phone isActive role firebaseUid').populate('services', 'title');
+  const items = lawyers.filter(lawyer => lawyer.user?.isActive && lawyer.user.role === 'lawyer' && lawyer.user.firebaseUid);
   res.json({ success: true, items });
 });
 
@@ -109,6 +111,9 @@ export const archiveLawyer = asyncHandler(async (req, res) => {
 });
 
 export const listConsultations = asyncHandler(async (req, res) => {
+  if (req.query.status !== undefined && !ConsultationRequest.schema.path('status').enumValues.includes(req.query.status)) {
+    throw new ApiError(400, 'Invalid consultation status filter.');
+  }
   const filter = req.query.status ? { status: req.query.status } : {};
   const items = await ConsultationRequest.find(filter)
     .populate('client', 'name email phone').populate('service', 'title')
@@ -118,20 +123,51 @@ export const listConsultations = asyncHandler(async (req, res) => {
 });
 
 export const updateConsultation = asyncHandler(async (req, res) => {
+  if (!mongoose.isObjectIdOrHexString(req.params.id)) throw new ApiError(400, 'Invalid consultation ID');
+  const { assignedLawyer, status, adminNote } = req.body || {};
+  if (assignedLawyer === undefined && status === undefined && adminNote === undefined) {
+    throw new ApiError(400, 'Supply an assigned lawyer, status, or admin note.');
+  }
+  if (status !== undefined && !ConsultationRequest.schema.path('status').enumValues.includes(status)) {
+    throw new ApiError(400, 'Invalid consultation status.');
+  }
+  if (adminNote !== undefined && (typeof adminNote !== 'string' || adminNote.length > 3000)) {
+    throw new ApiError(400, 'Admin note must be text of at most 3000 characters.');
+  }
   const item = await ConsultationRequest.findById(req.params.id);
   if (!item) throw new ApiError(404, 'Consultation request not found.');
-  if (req.body.assignedLawyer !== undefined) item.assignedLawyer = req.body.assignedLawyer || undefined;
-  if (req.body.status) item.status = req.body.status;
-  else if (req.body.assignedLawyer && item.status === 'pending') item.status = 'assigned';
-  if (req.body.adminNote !== undefined) item.adminNote = req.body.adminNote;
-  item.statusHistory.push({ status: item.status, changedBy: req.user._id, note: req.body.adminNote });
+  if (assignedLawyer !== undefined) {
+    if (assignedLawyer === '' || assignedLawyer === null) {
+      item.assignedLawyer = undefined;
+      if (item.status === 'assigned' && status === undefined) item.status = 'pending';
+    } else {
+      if (!mongoose.isObjectIdOrHexString(assignedLawyer)) throw new ApiError(400, 'Invalid assigned lawyer ID');
+      const lawyer = await Lawyer.findById(assignedLawyer).populate('user', 'role isActive firebaseUid');
+      if (!lawyer?.isActive || !lawyer.user?.isActive || lawyer.user.role !== 'lawyer' || !lawyer.user.firebaseUid) {
+        throw new ApiError(400, 'Choose an active lawyer with an active lawyer account.');
+      }
+      item.assignedLawyer = lawyer._id;
+      if (item.status === 'pending' && status === undefined) item.status = 'assigned';
+    }
+  }
+  if (status !== undefined) item.status = status;
+  if (item.status === 'assigned' && !item.assignedLawyer) throw new ApiError(400, 'Select a lawyer before marking the request assigned.');
+  if (adminNote !== undefined) item.adminNote = adminNote;
+  item.statusHistory.push({ status: item.status, changedBy: req.user._id, assignedLawyer: item.assignedLawyer, note: adminNote });
   await item.save();
+  await item.populate([{ path: 'service', select: 'title category' }, { path: 'assignedLawyer', populate: { path: 'user', select: 'name' } }]);
   res.json({ success: true, item });
 });
 
 export const archiveConsultation = asyncHandler(async (req, res) => {
-  const item = await ConsultationRequest.findByIdAndUpdate(req.params.id, { status: 'cancelled' }, { new: true });
+  if (!mongoose.isObjectIdOrHexString(req.params.id)) throw new ApiError(400, 'Invalid consultation ID');
+  const item = await ConsultationRequest.findById(req.params.id);
   if (!item) throw new ApiError(404, 'Consultation request not found.');
+  if (item.status !== 'cancelled') {
+    item.status = 'cancelled';
+    item.statusHistory.push({ status: 'cancelled', changedBy: req.user._id, assignedLawyer: item.assignedLawyer });
+    await item.save();
+  }
   res.json({ success: true, message: 'Consultation cancelled.', item });
 });
 
