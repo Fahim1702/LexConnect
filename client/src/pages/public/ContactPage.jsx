@@ -1,11 +1,216 @@
 import { useState } from 'react';
-import { Mail, MapPin, Phone } from 'lucide-react';
 import api from '../../api/client.js';
 import { ErrorAlert, SuccessAlert } from '../../components/Ui.jsx';
 
 export default function ContactPage() {
-  const [form, setForm] = useState({ name: '', email: '', phone: '', subject: '', message: '' }); const [status, setStatus] = useState({ loading: false, error: '', success: '' });
-  const submit = async (e) => { e.preventDefault(); setStatus({ loading: true, error: '', success: '' }); try { const { data } = await api.post('/public/contact', form); setForm({ name: '', email: '', phone: '', subject: '', message: '' }); setStatus({ loading: false, error: '', success: data.message }); } catch (error) { setStatus({ loading: false, error: error.message, success: '' }); } };
-  return <div className="section-pad"><div className="container-page grid gap-10 lg:grid-cols-[.75fr_1.25fr]"><section><p className="eyebrow">Contact</p><h1 className="page-title">Let’s start a conversation</h1><p className="mt-5 leading-7 text-slate-600">For general questions, send a message. For a legal matter, use the consultation request form.</p><div className="mt-8 grid gap-4 text-sm"><p className="flex gap-3"><MapPin className="text-gold" />Bashundhara, Dhaka, Bangladesh</p><p className="flex gap-3"><Phone className="text-gold" />+880 1700-000000</p><p className="flex gap-3"><Mail className="text-gold" />hello@lexconnect.test</p></div></section><form className="card" onSubmit={submit}><ErrorAlert message={status.error} /><SuccessAlert message={status.success} /><div className="grid gap-5 sm:grid-cols-2"><Field label="Name" required value={form.name} onChange={(value) => setForm({ ...form, name: value })} /><Field label="Email" type="email" required value={form.email} onChange={(value) => setForm({ ...form, email: value })} /><Field label="Phone" value={form.phone} onChange={(value) => setForm({ ...form, phone: value })} /><Field label="Subject" required value={form.subject} onChange={(value) => setForm({ ...form, subject: value })} /></div><label className="mt-5 block"><span className="label">Message</span><textarea className="input min-h-36" required value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} /></label><button className="btn-primary mt-5" disabled={status.loading}>{status.loading ? 'Sending…' : 'Send message'}</button></form></div></div>;
+  const [form, setForm] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    subject: '',
+    message: ''
+  });
+
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  function handleChange(event) {
+    const { name, value } = event.target;
+
+    setForm({
+      ...form,
+      [name]: value
+    });
+  }
+
+  function validateForm() {
+    if (!form.name.trim()) {
+      return 'Name is required.';
+    }
+
+    if (!form.email.trim()) {
+      return 'Email is required.';
+    }
+
+    if (!form.email.includes('@')) {
+      return 'Enter a valid email address.';
+    }
+
+    if (!form.subject.trim()) {
+      return 'Subject is required.';
+    }
+
+    if (!form.message.trim()) {
+      return 'Message is required.';
+    }
+
+    return '';
+  }
+
+  async function handleSubmit(event) {
+    event.preventDefault();
+
+    setError('');
+    setSuccess('');
+
+    const validationError = validateForm();
+
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const response = await api.post('/public/contact', form);
+
+      setSuccess(
+        response.data.message || 'Message sent successfully.'
+      );
+
+      setForm({
+        name: '',
+        email: '',
+        phone: '',
+        subject: '',
+        message: ''
+      });
+
+    } catch (err) {
+      setError(
+        err.response?.data?.message ||
+        err.message ||
+        'Unable to send message.'
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <section className="py-16">
+      <div className="container-page grid gap-10 lg:grid-cols-2">
+
+        <div>
+          <h1 className="text-4xl font-bold">
+            Contact Us
+          </h1>
+
+          <p className="mt-4 max-w-xl text-gray-600">
+            Send us a message for general questions about LexConnect.
+            For legal assistance, use the consultation request form.
+          </p>
+
+          <div className="mt-8 space-y-3 text-gray-700">
+            <p>
+              <strong>Address:</strong> Bashundhara, Dhaka, Bangladesh
+            </p>
+
+            <p>
+              <strong>Phone:</strong> +880 1700-000000
+            </p>
+
+            <p>
+              <strong>Email:</strong> hello@lexconnect.test
+            </p>
+          </div>
+        </div>
+
+        <form
+          onSubmit={handleSubmit}
+          className="rounded-lg border bg-white p-6 shadow-sm"
+        >
+
+          <ErrorAlert message={error} />
+          <SuccessAlert message={success} />
+
+          <div className="grid gap-5 sm:grid-cols-2">
+
+            <div>
+              <label className="mb-2 block font-semibold">
+                Name
+              </label>
+
+              <input
+                type="text"
+                name="name"
+                value={form.name}
+                onChange={handleChange}
+                className="w-full rounded border px-4 py-3"
+              />
+            </div>
+
+            <div>
+              <label className="mb-2 block font-semibold">
+                Email
+              </label>
+
+              <input
+                type="email"
+                name="email"
+                value={form.email}
+                onChange={handleChange}
+                className="w-full rounded border px-4 py-3"
+              />
+            </div>
+
+            <div>
+              <label className="mb-2 block font-semibold">
+                Phone
+              </label>
+
+              <input
+                type="text"
+                name="phone"
+                value={form.phone}
+                onChange={handleChange}
+                className="w-full rounded border px-4 py-3"
+              />
+            </div>
+
+            <div>
+              <label className="mb-2 block font-semibold">
+                Subject
+              </label>
+
+              <input
+                type="text"
+                name="subject"
+                value={form.subject}
+                onChange={handleChange}
+                className="w-full rounded border px-4 py-3"
+              />
+            </div>
+
+          </div>
+
+          <div className="mt-5">
+            <label className="mb-2 block font-semibold">
+              Message
+            </label>
+
+            <textarea
+              name="message"
+              value={form.message}
+              onChange={handleChange}
+              rows="6"
+              className="w-full rounded border px-4 py-3"
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="mt-5 rounded bg-blue-700 px-5 py-3 font-semibold text-white disabled:opacity-60"
+          >
+            {loading ? 'Sending...' : 'Send Message'}
+          </button>
+
+        </form>
+
+      </div>
+    </section>
+  );
 }
-function Field({ label, value, onChange, type = 'text', required }) { return <label><span className="label">{label}</span><input className="input" type={type} required={required} value={value} onChange={(e) => onChange(e.target.value)} /></label>; }

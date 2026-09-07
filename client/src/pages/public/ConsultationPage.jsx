@@ -1,16 +1,317 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+
 import api from '../../api/client.js';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { ErrorAlert, SuccessAlert } from '../../components/Ui.jsx';
 
 export default function ConsultationPage() {
-  const { user } = useAuth(); const [params] = useSearchParams(); const [services, setServices] = useState([]); const [lawyers, setLawyers] = useState([]);
-  const [form, setForm] = useState({ guestName: user?.name || '', guestEmail: user?.email || '', guestPhone: user?.phone || '', service: params.get('service') || '', preferredLawyer: params.get('lawyer') || '', subject: '', details: '', preferredDate: '' });
-  const [status, setStatus] = useState({ loading: false, error: '', success: '' });
-  useEffect(() => { Promise.all([api.get('/public/services', { params: { limit: 50 } }), api.get('/public/lawyers', { params: { limit: 50 } })]).then(([serviceRes, lawyerRes]) => { setServices(serviceRes.data.items); setLawyers(lawyerRes.data.items); }).catch((error) => setStatus({ loading: false, error: error.message, success: '' })); }, []);
-  const update = (key) => (e) => setForm({ ...form, [key]: e.target.value });
-  const submit = async (e) => { e.preventDefault(); setStatus({ loading: true, error: '', success: '' }); try { const { data } = await api.post('/consultations', form); setStatus({ loading: false, error: '', success: `${data.message} Reference: ${data.request.reference}` }); setForm({ ...form, subject: '', details: '', preferredDate: '' }); } catch (error) { setStatus({ loading: false, error: error.message, success: '' }); } };
-  return <div className="section-pad"><div className="container-page max-w-4xl"><p className="eyebrow">Consultation request</p><h1 className="page-title">Tell us how we can help</h1><p className="mt-4 text-slate-600">A request is not an attorney-client agreement. The admin reviews and assigns it to a lawyer.</p><form onSubmit={submit} className="card mt-8"><ErrorAlert message={status.error} /><SuccessAlert message={status.success} /><div className="grid gap-5 sm:grid-cols-2"><Field label="Full name" value={form.guestName} onChange={update('guestName')} required disabled={Boolean(user)} /><Field label="Email" type="email" value={form.guestEmail} onChange={update('guestEmail')} required disabled={Boolean(user)} /><Field label="Phone" value={form.guestPhone} onChange={update('guestPhone')} required /><label><span className="label">Legal service</span><select className="input" value={form.service} onChange={update('service')} required><option value="">Choose a service</option>{services.map((item) => <option key={item._id} value={item._id}>{item.title}</option>)}</select></label><label><span className="label">Preferred lawyer (optional)</span><select className="input" value={form.preferredLawyer} onChange={update('preferredLawyer')}><option value="">No preference</option>{lawyers.map((item) => <option key={item._id} value={item._id}>{item.user?.name}</option>)}</select></label><Field label="Preferred date (optional)" type="date" value={form.preferredDate} onChange={update('preferredDate')} /></div><label className="mt-5 block"><span className="label">Subject</span><input className="input" value={form.subject} onChange={update('subject')} required maxLength={180} /></label><label className="mt-5 block"><span className="label">Brief case details</span><textarea className="input min-h-40" value={form.details} onChange={update('details')} required maxLength={5000} placeholder="Do not include highly sensitive evidence at this stage." /></label><button className="btn-primary mt-6" disabled={status.loading}>{status.loading ? 'Submitting…' : 'Submit request'}</button></form></div></div>;
+  const { user } = useAuth();
+  const [searchParams] = useSearchParams();
+
+  const [services, setServices] = useState([]);
+  const [lawyers, setLawyers] = useState([]);
+
+  const [form, setForm] = useState({
+    guestName: user?.name || '',
+    guestEmail: user?.email || '',
+    guestPhone: user?.phone || '',
+    service: searchParams.get('service') || '',
+    preferredLawyer: searchParams.get('lawyer') || '',
+    subject: '',
+    details: '',
+    preferredDate: ''
+  });
+
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+
+  useEffect(() => {
+    async function loadOptions() {
+      try {
+        const [serviceResponse, lawyerResponse] = await Promise.all([
+          api.get('/public/services', { params: { limit: 50 } }),
+          api.get('/public/lawyers', { params: { limit: 50 } })
+        ]);
+
+        setServices(serviceResponse.data.items);
+        setLawyers(lawyerResponse.data.items);
+      } catch (err) {
+        setError('Unable to load services or lawyers.');
+      }
+    }
+
+    loadOptions();
+  }, []);
+
+  function handleChange(event) {
+    const { name, value } = event.target;
+
+    setForm({
+      ...form,
+      [name]: value
+    });
+  }
+
+  function validateForm() {
+    if (!form.guestName.trim()) {
+      return 'Full name is required.';
+    }
+
+    if (!form.guestEmail.trim()) {
+      return 'Email is required.';
+    }
+
+    if (!form.guestEmail.includes('@')) {
+      return 'Enter a valid email address.';
+    }
+
+    if (!form.guestPhone.trim()) {
+      return 'Phone number is required.';
+    }
+
+    if (!form.service) {
+      return 'Please choose a legal service.';
+    }
+
+    if (!form.subject.trim()) {
+      return 'Subject is required.';
+    }
+
+    if (!form.details.trim()) {
+      return 'Please provide brief case details.';
+    }
+
+    return '';
+  }
+
+  async function handleSubmit(event) {
+    event.preventDefault();
+
+    setError('');
+    setSuccess('');
+
+    const validationError = validateForm();
+
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const response = await api.post('/consultations', form);
+
+      const reference = response.data.request?.reference;
+
+      setSuccess(
+        reference
+          ? `Consultation request submitted. Reference: ${reference}`
+          : response.data.message || 'Consultation request submitted successfully.'
+      );
+
+      setForm({
+        ...form,
+        subject: '',
+        details: '',
+        preferredDate: ''
+      });
+
+    } catch (err) {
+      setError(
+        err.response?.data?.message ||
+        err.message ||
+        'Unable to submit consultation request.'
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <section className="py-16">
+      <div className="container-page max-w-4xl">
+
+        <h1 className="text-4xl font-bold">
+          Request a Consultation
+        </h1>
+
+        <p className="mt-4 text-gray-600">
+          Tell us about your legal matter. A consultation request does not
+          automatically create an attorney-client relationship.
+        </p>
+
+        <form
+          onSubmit={handleSubmit}
+          className="mt-8 rounded-lg border bg-white p-6 shadow-sm"
+        >
+          <ErrorAlert message={error} />
+          <SuccessAlert message={success} />
+
+          <div className="grid gap-5 sm:grid-cols-2">
+
+            <div>
+              <label className="mb-2 block font-semibold">
+                Full Name
+              </label>
+
+              <input
+                type="text"
+                name="guestName"
+                required
+                value={form.guestName}
+                onChange={handleChange}
+                disabled={Boolean(user)}
+                className="w-full rounded border px-4 py-3 disabled:bg-gray-100"
+              />
+            </div>
+
+            <div>
+              <label className="mb-2 block font-semibold">
+                Email
+              </label>
+
+              <input
+                type="email"
+                name="guestEmail"
+                required
+                value={form.guestEmail}
+                onChange={handleChange}
+                disabled={Boolean(user)}
+                className="w-full rounded border px-4 py-3 disabled:bg-gray-100"
+              />
+            </div>
+
+            <div>
+              <label className="mb-2 block font-semibold">
+                Phone
+              </label>
+
+              <input
+                type="text"
+                name="guestPhone"
+                required
+                value={form.guestPhone}
+                onChange={handleChange}
+                className="w-full rounded border px-4 py-3"
+              />
+            </div>
+
+            <div>
+              <label className="mb-2 block font-semibold">
+                Legal Service
+              </label>
+
+              <select
+                name="service"
+                required
+                value={form.service}
+                onChange={handleChange}
+                className="w-full rounded border px-4 py-3"
+              >
+                <option value="">
+                  Choose a service
+                </option>
+
+                {services.map((service) => (
+                  <option
+                    key={service._id}
+                    value={service._id}
+                  >
+                    {service.title}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="mb-2 block font-semibold">
+                Preferred Lawyer
+              </label>
+
+              <select
+                name="preferredLawyer"
+                value={form.preferredLawyer}
+                onChange={handleChange}
+                className="w-full rounded border px-4 py-3"
+              >
+                <option value="">
+                  No preference
+                </option>
+
+                {lawyers.map((lawyer) => (
+                  <option
+                    key={lawyer._id}
+                    value={lawyer._id}
+                  >
+                    {lawyer.user?.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="mb-2 block font-semibold">
+                Preferred Date
+              </label>
+
+              <input
+                type="date"
+                name="preferredDate"
+                value={form.preferredDate}
+                onChange={handleChange}
+                className="w-full rounded border px-4 py-3"
+              />
+            </div>
+
+          </div>
+
+          <div className="mt-5">
+            <label className="mb-2 block font-semibold">
+              Subject
+            </label>
+
+            <input
+              type="text"
+              name="subject"
+                required
+              value={form.subject}
+              onChange={handleChange}
+              maxLength={180}
+              className="w-full rounded border px-4 py-3"
+            />
+          </div>
+
+          <div className="mt-5">
+            <label className="mb-2 block font-semibold">
+              Brief Case Details
+            </label>
+
+            <textarea
+              name="details"
+                required
+              value={form.details}
+              onChange={handleChange}
+              rows="6"
+              maxLength={5000}
+              placeholder="Briefly describe the legal issue. Do not include highly sensitive evidence."
+              className="w-full rounded border px-4 py-3"
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="mt-6 rounded bg-blue-700 px-5 py-3 font-semibold text-white disabled:opacity-60"
+          >
+            {loading ? 'Submitting...' : 'Submit Request'}
+          </button>
+
+        </form>
+
+      </div>
+    </section>
+  );
 }
-function Field(props) { return <label><span className="label">{props.label}</span><input className="input" {...props} label={undefined} /></label>; }
