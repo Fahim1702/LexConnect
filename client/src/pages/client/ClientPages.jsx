@@ -5,11 +5,176 @@ import { useAuth } from '../../context/AuthContext.jsx';
 import { EmptyState, ErrorAlert, Loading, StatusBadge, SuccessAlert, formatDate } from '../../components/Ui.jsx';
 
 export function ClientDashboardPage() {
-  const [items, setItems] = useState(null); const [error, setError] = useState('');
-  const load = () => api.get('/client/consultations').then((res) => setItems(res.data.items)).catch((err) => setError(err.message));
-  useEffect(() => { load(); }, []);
-  const cancel = async (id) => { if (!window.confirm('Cancel this pending request?')) return; try { await api.patch(`/client/consultations/${id}/cancel`); await load(); } catch (err) { setError(err.message); } };
-  return <section><div className="flex flex-wrap items-end justify-between gap-4"><div><p className="eyebrow">Client dashboard</p><h1 className="text-4xl font-bold">My consultation requests</h1></div><Link className="btn-primary" to="/consultation">New request</Link></div><div className="mt-7"><ErrorAlert message={error} />{!items ? <Loading /> : items.length ? <div className="grid gap-5">{items.map((item) => <article className="card" key={item._id}><div className="flex flex-wrap justify-between gap-4"><div><div className="flex gap-3"><span className="font-mono text-xs text-slate-500">{item.reference}</span><StatusBadge value={item.status} /></div><h2 className="mt-2 text-xl font-bold">{item.subject}</h2><p className="mt-1 text-sm text-slate-500">{item.service?.title} · Submitted {formatDate(item.createdAt)}</p></div>{item.status === 'pending' && <button className="btn-danger self-start" onClick={() => cancel(item._id)}>Cancel</button>}</div><p className="mt-4 text-sm leading-6 text-slate-600">{item.details}</p>{item.assignedLawyer && <div className="mt-5 rounded-xl bg-sage p-4"><p className="text-xs font-bold uppercase tracking-wide text-forest">Assigned lawyer</p><p className="mt-1 font-bold">{item.assignedLawyer.user?.name}</p></div>}</article>)}</div> : <EmptyState title="No requests yet" text="Submit your first consultation request to get started." />}</div></section>;
+  const [consultations, setConsultations] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+
+  async function loadConsultations() {
+    try {
+      setLoading(true);
+      setError('');
+
+      const response = await api.get('/client/consultations');
+
+      setConsultations(response.data.items);
+    } catch (err) {
+      setError(
+        err.response?.data?.message ||
+        err.message ||
+        'Unable to load consultation requests.'
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    loadConsultations();
+  }, []);
+
+  async function handleCancel(id) {
+    const confirmed = window.confirm(
+      'Are you sure you want to cancel this consultation request?'
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      setError('');
+      setSuccess('');
+
+      await api.patch(
+        `/client/consultations/${id}/cancel`
+      );
+
+      setSuccess('Consultation request cancelled successfully.');
+
+      await loadConsultations();
+
+    } catch (err) {
+      setError(
+        err.response?.data?.message ||
+        err.message ||
+        'Unable to cancel consultation request.'
+      );
+    }
+  }
+
+  return (
+    <section>
+
+      <div className="flex flex-wrap items-center justify-between gap-4">
+
+        <div>
+          <h1 className="text-4xl font-bold">
+            My Consultation Requests
+          </h1>
+
+          <p className="mt-3 text-gray-600">
+            View and manage your consultation requests.
+          </p>
+        </div>
+
+        <Link
+          to="/consultation"
+          className="rounded bg-blue-700 px-5 py-3 font-semibold text-white"
+        >
+          New Consultation
+        </Link>
+
+      </div>
+
+      <div className="mt-8">
+
+        <ErrorAlert message={error} />
+        <SuccessAlert message={success} />
+
+        {loading ? (
+          <Loading />
+        ) : consultations.length === 0 ? (
+          <EmptyState
+            title="No consultation requests"
+            text="You have not submitted any consultation requests yet."
+          />
+        ) : (
+          <div className="grid gap-5">
+
+            {consultations.map((item) => (
+              <article
+                key={item._id}
+                className="rounded-lg border bg-white p-6 shadow-sm"
+              >
+
+                <div className="flex flex-wrap items-start justify-between gap-4">
+
+                  <div>
+
+                    <p className="text-sm text-gray-500">
+                      Reference: {item.reference}
+                    </p>
+
+                    <h2 className="mt-2 text-xl font-bold">
+                      {item.subject}
+                    </h2>
+
+                    <p className="mt-2 text-sm text-gray-600">
+                      Service: {item.service?.title || 'Not specified'}
+                    </p>
+
+                    <p className="mt-1 text-sm text-gray-600">
+                      Submitted: {formatDate(item.createdAt)}
+                    </p>
+
+                  </div>
+
+                  <div className="flex items-center gap-3">
+
+                    <StatusBadge value={item.status} />
+
+                    {item.status === 'pending' && (
+                      <button
+                        onClick={() => handleCancel(item._id)}
+                        className="rounded bg-red-600 px-4 py-2 text-sm font-semibold text-white"
+                      >
+                        Cancel
+                      </button>
+                    )}
+
+                  </div>
+
+                </div>
+
+                <p className="mt-5 leading-7 text-gray-700">
+                  {item.details}
+                </p>
+
+                {item.assignedLawyer && (
+                  <div className="mt-5 rounded bg-gray-100 p-4">
+
+                    <p className="text-sm text-gray-500">
+                      Assigned Lawyer
+                    </p>
+
+                    <p className="mt-1 font-semibold">
+                      {item.assignedLawyer.user?.name}
+                    </p>
+
+                  </div>
+                )}
+
+              </article>
+            ))}
+
+          </div>
+        )}
+
+      </div>
+
+    </section>
+  );
 }
 
 export function ClientProfilePage() {
