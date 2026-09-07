@@ -127,6 +127,37 @@ app.put('/api/services/:id', async (req, res) => {
     }
 });
 
+app.delete('/api/services/:id', async (req, res) => {
+    if (!mongoose.isObjectIdOrHexString(req.params.id)) {
+        return res.status(400).json({
+            success: false,
+            message: 'Invalid service ID'
+        });
+    }
+
+    try {
+        // Delete the service whose _id matches the URL parameter.
+        const service = await Service.findByIdAndDelete(req.params.id);
+
+        if (!service) {
+            return res.status(404).json({
+                success: false,
+                message: 'Service not found'
+            });
+        }
+
+        res.json({
+            success: true,
+            message: 'Service deleted successfully'
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Failed to delete service'
+        });
+    }
+});
+
 app.get('/', (req, res) => {
     res.send('LexConnect backend is running');
 });
