@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { profileUpdates } from '../utils/lawyerProfile.js';
 import User from '../models/User.js';
 import Lawyer from '../models/Lawyer.js';
 import Service from '../models/Service.js';
@@ -64,50 +65,57 @@ export const deleteResource = asyncHandler(async (req, res) => {
   res.json({ success: true, message: 'Record archived.', item });
 });
 
-export const listLawyers = asyncHandler(async (_req, res) => {
-  const lawyers = await Lawyer.find({ isActive: true }).populate('user', 'name email phone isActive role firebaseUid').populate('services', 'title');
-  const items = lawyers.filter(lawyer => lawyer.user?.isActive && lawyer.user.role === 'lawyer' && lawyer.user.firebaseUid);
+export const listLawyers = asyncHandler(async (req, res) => {
+  const eligible = req.query.eligible === 'true';
+  const lawyers = await Lawyer.find(eligible ? { isActive: true } : {}).populate('user', 'name email phone isActive role firebaseUid').populate('services', 'title');
+  const items = eligible ? lawyers.filter(lawyer => lawyer.user?.isActive && lawyer.user.role === 'lawyer' && lawyer.user.firebaseUid) : lawyers;
+  res.json({ success: true, items });
+});
+
+export const listLawyerCandidates = asyncHandler(async (_req, res) => {
+  const linked = await Lawyer.distinct('user');
+  const items = await User.find({ _id: { $nin: linked }, isActive: true, role: { $in: ['client', 'lawyer'] }, firebaseUid: { $type: 'string', $ne: '' } })
+    .select('name email').sort('name');
   res.json({ success: true, items });
 });
 
 export const createLawyer = asyncHandler(async (req, res) => {
-  const { name, email, phone, password, ...profile } = req.body;
-  if (!name || !email || !password) throw new ApiError(400, 'Name, email, and a temporary password are required.');
-  const user = await User.create({ name, email, phone, password, role: 'lawyer' });
+  if (!mongoose.isObjectIdOrHexString(req.body?.user)) throw new ApiError(400, 'Choose a registered account.');
+  const user = await User.findById(req.body.user);
+  if (!user?.isActive || !user.firebaseUid || !['client', 'lawyer'].includes(user.role)) {
+    throw new ApiError(400, 'Choose an active Firebase-linked client or lawyer account.');
+  }
+  if (await Lawyer.exists({ user: user._id })) throw new ApiError(409, 'This account already has a lawyer profile.');
+  // Validate and create the profile before granting the role. Works on standalone MongoDB too.
+  const lawyer = await Lawyer.create({ ...await profileUpdates(req.body, true), user: user._id });
   try {
-    const lawyer = await Lawyer.create({ ...profile, user: user._id });
-    const populated = await lawyer.populate([{ path: 'user', select: 'name email phone isActive' }, { path: 'services', select: 'title' }]);
-    res.status(201).json({ success: true, item: populated });
+    const promoted = await User.findOneAndUpdate({ _id: user._id, role: user.role, isActive: true, firebaseUid: user.firebaseUid }, { $set: { role: 'lawyer' } });
+    if (!promoted) throw new ApiError(409, 'The account changed. Refresh and try again.');
   } catch (error) {
-    await User.findByIdAndDelete(user._id);
+    await Lawyer.deleteOne({ _id: lawyer._id });
     throw error;
   }
+  await lawyer.populate([{ path: 'user', select: 'name email phone isActive' }, { path: 'services', select: 'title' }]);
+  res.status(201).json({ success: true, item: lawyer });
 });
 
 export const updateLawyer = asyncHandler(async (req, res) => {
-  const profileUpdates = { ...req.body };
-  const userUpdates = {};
-  for (const key of ['name', 'email', 'phone']) {
-    if (profileUpdates[key] !== undefined) {
-      userUpdates[key] = profileUpdates[key];
-      delete profileUpdates[key];
-    }
-  }
-  delete profileUpdates.password;
+  if (!mongoose.isObjectIdOrHexString(req.params.id)) throw new ApiError(400, 'Invalid lawyer ID.');
   const lawyer = await Lawyer.findById(req.params.id);
   if (!lawyer) throw new ApiError(404, 'Lawyer not found.');
-  if (Object.keys(userUpdates).length) await User.findByIdAndUpdate(lawyer.user, userUpdates, { runValidators: true });
-  Object.assign(lawyer, profileUpdates);
+  Object.assign(lawyer, await profileUpdates(req.body, true));
   await lawyer.save();
   await lawyer.populate([{ path: 'user', select: 'name email phone isActive' }, { path: 'services', select: 'title' }]);
   res.json({ success: true, item: lawyer });
 });
 
 export const archiveLawyer = asyncHandler(async (req, res) => {
-  const lawyer = await Lawyer.findByIdAndUpdate(req.params.id, { isActive: false }, { new: true });
+  if (!mongoose.isObjectIdOrHexString(req.params.id)) throw new ApiError(400, 'Invalid lawyer ID.');
+  const lawyer = await Lawyer.findById(req.params.id);
   if (!lawyer) throw new ApiError(404, 'Lawyer not found.');
-  await User.findByIdAndUpdate(lawyer.user, { isActive: false });
-  res.json({ success: true, message: 'Lawyer archived.', item: lawyer });
+  lawyer.isActive = false;
+  await lawyer.save();
+  res.json({ success: true, message: 'Lawyer profile archived. Existing consultations are retained.', item: lawyer });
 });
 
 export const listConsultations = asyncHandler(async (req, res) => {

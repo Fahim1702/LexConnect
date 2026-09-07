@@ -4,7 +4,7 @@ import { EmptyState, ErrorAlert, Loading, StatusBadge, formatDate } from '../../
 
 export function AdminConsultationsPage() {
   const [items, setItems] = useState(null); const [lawyers, setLawyers] = useState([]); const [error, setError] = useState('');
-  const load = () => Promise.all([api.get('/admin/consultations'), api.get('/admin/lawyers')]).then(([requests, lawyerRes]) => { setItems(requests.data.items); setLawyers(lawyerRes.data.items.filter((item) => item.isActive)); }).catch((err) => setError(err.message));
+  const load = () => Promise.all([api.get('/admin/consultations'), api.get('/admin/lawyers', { params: { eligible: true } })]).then(([requests, lawyerRes]) => { setItems(requests.data.items); setLawyers(lawyerRes.data.items.filter((item) => item.isActive)); }).catch((err) => setError(err.message));
   useEffect(() => { load(); }, []);
   const update = async (id, payload) => { try { await api.patch(`/admin/consultations/${id}`, payload); await load(); } catch (err) { setError(err.message); } };
   const archive = async (id) => { if (!window.confirm('Cancel this consultation request?')) return; try { await api.delete(`/admin/consultations/${id}`); await load(); } catch (err) { setError(err.message); } };

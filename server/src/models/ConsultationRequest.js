@@ -53,6 +53,7 @@ const consultationRequestSchema = new mongoose.Schema(
       ref: 'Lawyer'
     },
     assignedLawyer: { type: mongoose.Schema.Types.ObjectId, ref: 'Lawyer' },
+    lawyerNote: { type: String, maxlength: 3000 },
     adminNote: { type: String, maxlength: 3000 },
     statusHistory: [{
       _id: false,

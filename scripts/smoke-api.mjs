@@ -25,6 +25,9 @@ const identities = {
   admin: { uid: 'smoke-admin', email: 'admin@example.test' },
   client: { uid: 'smoke-client', email: 'client@example.test' },
   other: { uid: 'smoke-other', email: 'other@example.test' },
+  lawyer: { uid: 'smoke-lawyer', email: 'smoke@example.test' },
+  candidate: { uid: 'smoke-candidate', email: 'candidate@example.test' },
+  noProfile: { uid: 'smoke-no-profile', email: 'no-profile@example.test' },
   collision: { uid: 'smoke-collision', email: 'legacy@example.test' }
 };
 const revoked = new Set();
@@ -153,7 +156,7 @@ try {
   const overview = await request('/admin/overview', 'GET', undefined, 200, 'admin');
   assert.equal(overview.stats.users, await User.countDocuments());
   assert.ok(Array.isArray(overview.recent));
-  assert.ok((await request('/admin/lawyers', 'GET', undefined, 200, 'admin')).items.some(item => item._id === String(lawyer._id)));
+  assert.ok((await request('/admin/lawyers?eligible=true', 'GET', undefined, 200, 'admin')).items.some(item => item._id === String(lawyer._id)));
   const assignable = (await request('/consultations', 'POST', payload, 201, 'client')).request;
   const adminPath = `/admin/consultations/${assignable._id}`;
   await request(adminPath, 'PATCH', { assignedLawyer: lawyer._id }, 403, 'client');
@@ -165,7 +168,7 @@ try {
   }
   await User.findByIdAndUpdate(user._id, { isActive: false });
   await request(adminPath, 'PATCH', { assignedLawyer: lawyer._id }, 400, 'admin');
-  assert.equal((await request('/admin/lawyers', 'GET', undefined, 200, 'admin')).items.length, 0);
+  assert.equal((await request('/admin/lawyers?eligible=true', 'GET', undefined, 200, 'admin')).items.length, 0);
   await User.findByIdAndUpdate(user._id, { isActive: true, role: 'client' });
   await request(adminPath, 'PATCH', { assignedLawyer: lawyer._id }, 400, 'admin');
   await User.findByIdAndUpdate(user._id, { role: 'lawyer' });
@@ -205,6 +208,90 @@ try {
   await request('/admin/consultations/abc', 'PATCH', { status: 'pending' }, 400, 'admin');
   await request(`/admin/consultations/${new mongoose.Types.ObjectId()}`, 'PATCH', { status: 'pending' }, 404, 'admin');
   console.log('PASS: admin overview, validated assignment/unassignment, history, client visibility, retained cancellations and conflicting-update protection.');
+
+  const candidate = (await request('/auth/sync', 'POST', { name: 'New Advocate' }, 200, 'candidate')).user;
+  const candidateData = { user: candidate.id, designation: 'Advocate', barCouncilNumber: 'SMOKE-002', bio: 'New lawyer', services: [String(service._id)] };
+  await request('/admin/lawyers', 'POST', candidateData, 403, 'client');
+  await request('/admin/lawyer-candidates', 'GET', undefined, 403, 'client');
+  assert.ok((await request('/admin/lawyer-candidates', 'GET', undefined, 200, 'admin')).items.some(item => item._id === candidate.id));
+  for (const invalid of [{ barCouncilNumber: undefined }, { services: ['abc'] }, { services: [String(new mongoose.Types.ObjectId())] }, { user: String((await User.findOne({ role: 'admin' }))._id) }]) {
+    await request('/admin/lawyers', 'POST', { ...candidateData, ...invalid }, 400, 'admin');
+  }
+  assert.equal((await User.findById(candidate.id)).role, 'client');
+  assert.equal(await Lawyer.countDocuments({ user: candidate.id }), 0);
+  await User.findByIdAndUpdate(candidate.id, { isActive: false });
+  await request('/admin/lawyers', 'POST', candidateData, 400, 'admin');
+  await User.findByIdAndUpdate(candidate.id, { isActive: true });
+  await User.findByIdAndUpdate(candidate.id, { $unset: { firebaseUid: 1 } });
+  await request('/admin/lawyers', 'POST', candidateData, 400, 'admin');
+  await User.findByIdAndUpdate(candidate.id, { firebaseUid: identities.candidate.uid });
+  // Fault injection: a database write failure must not leave a usable orphan profile.
+  const failedPromotion = mock.method(User, 'findOneAndUpdate', () => { throw new Error('Simulated write failure'); });
+  try {
+    await request('/admin/lawyers', 'POST', candidateData, 500, 'admin');
+  } finally {
+    failedPromotion.mock.restore();
+  }
+  assert.equal(await Lawyer.countDocuments({ user: candidate.id }), 0);
+  assert.equal((await User.findById(candidate.id)).role, 'client');
+  const provisioned = (await request('/admin/lawyers', 'POST', { ...candidateData, role: 'admin', password: 'ignored' }, 201, 'admin')).item;
+  assert.equal(provisioned.user._id, candidate.id);
+  assert.equal((await User.findById(candidate.id)).firebaseUid, identities.candidate.uid);
+  assert.equal((await User.findById(candidate.id).select('+password')).password, undefined);
+  assert.equal((await request('/auth/me', 'GET', undefined, 200, 'candidate')).user.role, 'lawyer');
+  await request('/admin/lawyers', 'POST', candidateData, 409, 'admin');
+  assert.ok(!(await request('/admin/lawyer-candidates', 'GET', undefined, 200, 'admin')).items.some(item => item._id === candidate.id));
+  await request('/lawyer/profile', 'GET', undefined, 401);
+  await request('/lawyer/profile', 'GET', undefined, 403, 'client');
+  const edited = (await request('/lawyer/profile', 'PATCH', { bio: 'Edited biography', user: client.id, isActive: false, isFeatured: true, barCouncilNumber: 'OVERRIDE' }, 200, 'candidate')).profile;
+  assert.equal(edited.bio, 'Edited biography');
+  assert.equal(edited.user._id, candidate.id);
+  assert.equal(edited.isActive, true);
+  assert.equal(edited.isFeatured, false);
+  assert.equal(edited.barCouncilNumber, candidateData.barCouncilNumber);
+  await request('/lawyer/profile', 'PATCH', { services: ['abc'] }, 400, 'candidate');
+  await request(`/admin/lawyers/${provisioned._id}`, 'PATCH', { designation: 'Senior Advocate', user: client.id }, 200, 'admin');
+  assert.equal((await Lawyer.findById(provisioned._id)).user.toString(), candidate.id);
+  const working = (await request('/consultations', 'POST', payload, 201, 'client')).request;
+  await request(`/admin/consultations/${working._id}`, 'PATCH', { assignedLawyer: provisioned._id, adminNote: 'Admin only' }, 200, 'admin');
+  const lawyerView = (await request('/lawyer/consultations', 'GET', undefined, 200, 'candidate')).items;
+  assert.deepEqual(lawyerView.map(item => item._id), [working._id]);
+  assert.equal(lawyerView[0].adminNote, undefined);
+  assert.equal(lawyerView[0].statusHistory, undefined);
+  const workPath = `/lawyer/consultations/${working._id}`;
+  await request(workPath, 'PATCH', { status: 'resolved' }, 404, 'lawyer');
+  await request(`/lawyer/consultations/${created._id}`, 'PATCH', { status: 'resolved' }, 404, 'candidate');
+  for (const invalid of [{ status: 'assigned' }, { status: 'in-review', lawyerNote: {} }, { status: 'in-review', lawyerNote: 'x'.repeat(3001) }]) {
+    await request(workPath, 'PATCH', invalid, 400, 'candidate');
+  }
+  const progress = (await request(workPath, 'PATCH', { status: 'in-review', lawyerNote: 'Private working note', assignedLawyer: lawyer._id, adminNote: 'forged' }, 200, 'candidate')).item;
+  assert.equal(progress.assignedLawyer, provisioned._id);
+  assert.equal(progress.adminNote, undefined);
+  assert.equal(progress.statusHistory, undefined);
+  const savedWork = await ConsultationRequest.findById(working._id);
+  assert.equal(savedWork.lawyerNote, 'Private working note');
+  assert.equal(savedWork.adminNote, 'Admin only');
+  assert.equal(savedWork.statusHistory.at(-1).changedBy.toString(), candidate.id);
+  assert.equal((await request('/client/consultations', 'GET', undefined, 200, 'client')).items.find(item => item._id === working._id).lawyerNote, undefined);
+  await request(workPath, 'PATCH', { status: 'scheduled' }, 200, 'candidate');
+  await request(workPath, 'PATCH', { status: 'resolved' }, 200, 'candidate');
+  await request(workPath, 'PATCH', { status: 'in-review' }, 400, 'candidate');
+  await request(`/admin/consultations/${working._id}`, 'DELETE', undefined, 200, 'admin');
+  await request(workPath, 'PATCH', { status: 'in-review' }, 400, 'candidate');
+  await request(`/admin/lawyers/${provisioned._id}`, 'DELETE', undefined, 200, 'admin');
+  await request('/lawyer/profile', 'GET', undefined, 403, 'candidate');
+  await request('/lawyer/profile', 'PATCH', { isActive: true }, 403, 'candidate');
+  await request('/lawyer/consultations', 'GET', undefined, 403, 'candidate');
+  await request(workPath, 'PATCH', { status: 'scheduled' }, 403, 'candidate');
+  assert.ok((await request('/admin/lawyers', 'GET', undefined, 200, 'admin')).items.some(item => item._id === provisioned._id && !item.isActive));
+  assert.ok(!(await request('/admin/lawyers?eligible=true', 'GET', undefined, 200, 'admin')).items.some(item => item._id === provisioned._id));
+  assert.ok(await ConsultationRequest.exists({ _id: working._id }));
+  await request(`/admin/lawyers/${provisioned._id}`, 'PATCH', { isActive: true }, 200, 'admin');
+  await request('/lawyer/profile', 'GET', undefined, 200, 'candidate');
+  await User.create({ firebaseUid: identities.noProfile.uid, email: identities.noProfile.email, name: 'No Profile', role: 'lawyer' });
+  await request('/lawyer/consultations', 'GET', undefined, 404, 'noProfile');
+  await request(`/lawyer/consultations/${created._id}`, 'PATCH', { status: 'resolved' }, 404, 'noProfile');
+  console.log('PASS: Firebase-linked lawyer provisioning, profile ownership, private notes, assigned-only updates, closure and archive/reactivation.');
 
   await User.collection.insertOne({ name: 'Legacy Admin', email: identities.collision.email, role: 'admin', isActive: true });
   await request('/auth/sync', 'POST', {}, 409, 'collision');

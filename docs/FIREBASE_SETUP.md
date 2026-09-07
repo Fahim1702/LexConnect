@@ -62,7 +62,7 @@ Restart both processes after environment changes. Public pages load without Fire
 
 Every new synchronized account is a client, even if a request body claims `role: admin`. Roles are read from MongoDB on each protected request; Firebase console membership does not make an application user an admin.
 
-For an initial administrator, a trusted project maintainer can locate their own newly registered record by its **exact Firebase UID** in MongoDB Compass and set `role` to `admin`, then sign in again. Do not promote arbitrary users or create a public role-changing endpoint. The admin overview and consultation management pages are connected. The assignment menu uses existing active lawyer profiles with active Firebase-linked accounts; lawyer profile provisioning is a later checkpoint.
+For an initial administrator, a trusted project maintainer can locate their own newly registered record by its **exact Firebase UID** in MongoDB Compass and set `role` to `admin`, then sign in again. Do not promote arbitrary users or create a public role-changing endpoint. The admin overview and consultation management pages are connected. The assignment menu uses active lawyer profiles with active Firebase-linked accounts. Admins can now create those profiles from the Lawyers page.
 
 Old MongoDB accounts without `firebaseUid` are not automatically linked by email. If an old email conflicts, a maintainer must verify ownership and deliberately migrate that record while preserving its `_id` and relationships. Old passwords are not accepted by Firebase, and old guest consultations are not claimed by email.
 
@@ -74,11 +74,25 @@ Old MongoDB accounts without `firebaseUid` are not automatically linked by email
 - Admin protection for service CRUD and consultation management.
 - Signed-in client ownership, viewing requests, pending cancellation and profile editing.
 
-Admin overview, lawyer assignment and consultation cancellation are also connected. Lawyer dashboard, admin content/user management, testimonials and service-deletion integrity remain later tasks.
+Admin overview, lawyer provisioning, assignment and consultation cancellation are also connected. Lawyers can edit their professional profiles and update assigned requests. Blog drafting/review, admin content/user management, testimonials and service-deletion integrity remain later tasks.
+
+## Add a lawyer and test the workflow
+
+1. Ask the lawyer to register and sign in through LexConnect so their Firebase account is synchronized to MongoDB.
+2. As an admin, open `/admin/lawyers`, choose **Add lawyer**, select the registered account by name/email, and enter its professional details and Bar Council number. This preserves the account ID, Firebase UID and existing relationships, and assigns the lawyer role. No temporary password is needed.
+3. Have the lawyer sign out and sign in again to refresh the browser's role and dashboard navigation.
+4. Submit a consultation as a client. As admin, assign it to the new lawyer from `/admin/consultations`.
+5. As the lawyer, open `/lawyer`, review the assigned request, save a private note and change its status to in-review, scheduled or resolved. Other lawyers must not be able to modify it. Resolved/cancelled requests cannot be reopened by lawyers.
+6. Verify that the client sees the updated status but no lawyer notes, admin notes or internal history. Admins can see the notes and history.
+7. Edit the professional profile at `/lawyer/profile` and verify the public directory reflects it. Account identity, Bar Council number, featured status and activation remain outside the lawyer's editable fields.
+
+Archiving a lawyer profile hides it from the public directory and assignment menu and blocks lawyer profile/request APIs. It retains the account and consultation records. Existing assignments remain for the admin to reassign. An admin can edit the archived profile and tick **Active** to restore access.
+
+Profile creation validates the data before changing the account role and removes the newly created profile if the role update fails. This supports standalone MongoDB without requiring transactions. If the server is interrupted between those two writes, a maintainer may need to reconcile the profile and role before retrying.
 
 ## Automated checks and limits
 
-`npm run check` runs setup, middleware and build checks without Firebase credentials. `npm run test:integration` tests real HTTP/MongoDB behavior in a temporary database while replacing **only the Firebase SDK boundary** with controlled test identities. Production code has no test-token bypass. The temporary database is removed afterward.
+`npm run check` runs setup, middleware and build checks without Firebase credentials. `npm run test:integration` tests real HTTP/MongoDB behavior in a temporary database using controlled identities at the Firebase SDK boundary. A separate fault-injection case simulates a failed account-role write to check profile cleanup. Production code has no test-token bypass. The temporary database is removed afterward.
 
 These tests prove application authorization and data-handling behavior; they do not prove that the team's real Firebase configuration or login works. Complete the manual steps above once the project exists.
 

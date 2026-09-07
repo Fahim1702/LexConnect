@@ -10,7 +10,9 @@ A React, Express and MongoDB course project, currently being rebuilt in small, e
 - Client profile editing and viewing/cancelling owned pending consultations.
 - Admin-only service CRUD and consultation list/read/status-update APIs.
 - Admin overview and consultation management, including validated lawyer assignment and cancellation history.
-- Lawyer dashboard, admin content/user management and testimonials remain separate checkpoints. Their older files are not all connected yet.
+- Admin lawyer profile creation for existing Firebase-linked accounts, editing, archiving and reactivation.
+- Lawyer profile editing and assigned consultation updates with private notes.
+- Blog drafting/review, admin content/user management and testimonials remain separate checkpoints. Their older files are not all connected yet.
 
 The running backend is `server/src/server.js`. It mounts the existing public routes and retains the CRUD routes built during the lab. `server/src/app.js` is the older full-app assembly and is not the current entry point.
 

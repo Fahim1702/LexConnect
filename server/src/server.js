@@ -12,6 +12,7 @@ import authRoutes from './routes/authRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 import { updateConsultation } from './controllers/adminController.js';
 import clientRoutes from './routes/clientRoutes.js';
+import lawyerRoutes from './routes/lawyerRoutes.js';
 import { protect, authorize, optionalAuth } from './middleware/auth.js';
 import { connectDatabase } from './config/db.js';
 import { notFound, errorHandler } from './middleware/errors.js';
@@ -26,6 +27,7 @@ app.use('/api/public', publicRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/client', clientRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/lawyer', lawyerRoutes);
 
 app.get('/api/health', (req, res) => {    // first route
     res.json({

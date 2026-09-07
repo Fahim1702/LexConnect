@@ -18,11 +18,11 @@ const lawyerSchema = new mongoose.Schema(
     isFeatured: { type: Boolean, default: false },
     isActive: { type: Boolean, default: true }
   },
-  { timestamps: true }
+  { timestamps: true, optimisticConcurrency: true }
 );
 
 lawyerSchema.pre('validate', async function createSlug(next) {
-  if (!this.slug && this.user) {
+  if (!this.slug && this.user && this.barCouncilNumber) {
     const User = mongoose.model('User');
     const user = await User.findById(this.user).select('name');
     if (user) this.slug = `${slugify(user.name)}-${this.barCouncilNumber.toLowerCase().replace(/[^a-z0-9]/g, '')}`;

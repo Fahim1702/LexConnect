@@ -10,7 +10,7 @@ router.use(protect, authorize('client'));
 
 router.get('/consultations', asyncHandler(async (req, res) => {
   const items = await ConsultationRequest.find({ client: req.user._id })
-    .select('-adminNote -statusHistory')
+    .select('-adminNote -lawyerNote -statusHistory')
     .populate('service', 'title')
     .populate({ path: 'assignedLawyer', populate: { path: 'user', select: 'name' } }).sort('-createdAt');
   res.json({ success: true, items });
@@ -23,7 +23,7 @@ router.patch('/consultations/:id/cancel', asyncHandler(async (req, res) => {
     { _id: req.params.id, client: req.user._id, status: 'pending' },
     { $set: { status: 'cancelled' }, $inc: { __v: 1 }, $push: { statusHistory: { status: 'cancelled', changedBy: req.user._id } } },
     { new: true, runValidators: true }
-  ).select('-adminNote -statusHistory');
+  ).select('-adminNote -lawyerNote -statusHistory');
   if (!item) {
     const owned = await ConsultationRequest.exists({ _id: req.params.id, client: req.user._id });
     if (!owned) throw new ApiError(404, 'Consultation request not found');
