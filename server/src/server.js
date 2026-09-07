@@ -4,6 +4,7 @@ import cors from 'cors';
 import mongoose from 'mongoose';
 import dns from 'node:dns';
 import Service from './models/Service.js';
+import ConsultationRequest from './models/ConsultationRequest.js';
 
 // Needed on my network so Node can resolve MongoDB Atlas
 dns.setServers(['1.1.1.1', '1.0.0.1']);
@@ -154,6 +155,64 @@ app.delete('/api/services/:id', async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Failed to delete service'
+        });
+    }
+});
+
+app.post('/api/consultations', async (req, res) => {
+    // Read only the fields a client can supply when submitting a request.
+    const { guestName, guestEmail, guestPhone, service, subject, details, preferredDate } = req.body || {};
+
+    if (!mongoose.isObjectIdOrHexString(service)) {
+        return res.status(400).json({
+            success: false,
+            message: 'Invalid service ID'
+        });
+    }
+
+    try {
+        const selectedService = await Service.findById(service);
+
+        if (!selectedService) {
+            return res.status(404).json({
+                success: false,
+                message: 'Service not found'
+            });
+        }
+
+        if (!selectedService.isActive) {
+            return res.status(400).json({
+                success: false,
+                message: 'This service is not currently available'
+            });
+        }
+
+        const request = await ConsultationRequest.create({
+            guestName,
+            guestEmail,
+            guestPhone,
+            service,
+            subject,
+            details,
+            preferredDate: preferredDate === '' ? undefined : preferredDate
+        });
+
+        res.status(201).json({
+            success: true,
+            message: 'Consultation request submitted.',
+            request
+        });
+    } catch (error) {
+        if (error.name === 'ValidationError' || error.name === 'CastError') {
+            return res.status(400).json({
+                success: false,
+                message: error.message
+            });
+        }
+
+        res.status(500).json({
+            success: false,
+            message: 'Failed to create consultation request'
         });
     }
 });
