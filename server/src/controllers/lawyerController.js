@@ -17,11 +17,13 @@ export const updateMyLawyerProfile = asyncHandler(async (req, res) => {
 });
 
 export const listMyPosts = asyncHandler(async (req, res) => {
+  await activeLawyer(req.user._id);
   const items = await BlogPost.find({ author: req.user._id }).sort('-createdAt');
   res.json({ success: true, items });
 });
 
 export const createMyPost = asyncHandler(async (req, res) => {
+  await activeLawyer(req.user._id);
   const item = await BlogPost.create({
     title: req.body.title,
     excerpt: req.body.excerpt,

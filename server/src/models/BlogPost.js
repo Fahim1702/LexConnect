@@ -14,7 +14,7 @@ const blogPostSchema = new mongoose.Schema(
     isPublished: { type: Boolean, default: false },
     publishedAt: Date
   },
-  { timestamps: true }
+  { timestamps: true, optimisticConcurrency: true }
 );
 
 blogPostSchema.pre('validate', function createSlug(next) {

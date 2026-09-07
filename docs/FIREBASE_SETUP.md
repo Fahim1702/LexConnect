@@ -74,7 +74,7 @@ Old MongoDB accounts without `firebaseUid` are not automatically linked by email
 - Admin protection for service CRUD and consultation management.
 - Signed-in client ownership, viewing requests, pending cancellation and profile editing.
 
-Admin overview, lawyer provisioning, assignment and consultation cancellation are also connected. Lawyers can edit their professional profiles and update assigned requests. Blog drafting/review, admin content/user management, testimonials and service-deletion integrity remain later tasks.
+Admin overview, lawyer provisioning, assignment and consultation cancellation are also connected. Lawyers can edit their professional profiles and update assigned requests. Lawyer blog drafts and admin publishing are connected. Other admin content/user management, testimonials and service-deletion integrity remain later tasks.
 
 ## Add a lawyer and test the workflow
 
@@ -89,6 +89,12 @@ Admin overview, lawyer provisioning, assignment and consultation cancellation ar
 Archiving a lawyer profile hides it from the public directory and assignment menu and blocks lawyer profile/request APIs. It retains the account and consultation records. Existing assignments remain for the admin to reassign. An admin can edit the archived profile and tick **Active** to restore access.
 
 Profile creation validates the data before changing the account role and removes the newly created profile if the role update fails. This supports standalone MongoDB without requiring transactions. If the server is interrupted between those two writes, a maintainer may need to reconcile the profile and role before retrying.
+
+## Blog drafts and publishing
+
+An active lawyer can create drafts from `/lawyer/blog`. Drafts are visible to their author and admins. The server assigns the author from the signed-in account and prevents lawyers from publishing their own submissions.
+
+Admins can review and edit drafts at `/admin/blog`, then tick **Published** to make them public. **Archive** hides a post without deleting it; editing and publishing it again restores it. The first publication date is retained. Changing a title updates its URL slug, so update any shared links after renaming a published post.
 
 ## Automated checks and limits
 
