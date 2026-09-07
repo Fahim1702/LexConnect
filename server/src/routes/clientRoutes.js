@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { getClientTestimonials, createTestimonial } from '../controllers/consultationController.js';
 import mongoose from 'mongoose';
 import ConsultationRequest from '../models/ConsultationRequest.js';
 import { protect, authorize } from '../middleware/auth.js';
@@ -31,5 +32,7 @@ router.patch('/consultations/:id/cancel', asyncHandler(async (req, res) => {
   }
   res.json({ success: true, item });
 }));
+
+router.route('/testimonials').get(getClientTestimonials).post(createTestimonial);
 
 export default router;

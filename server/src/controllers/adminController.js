@@ -198,12 +198,13 @@ export const listTestimonials = asyncHandler(async (_req, res) => {
 });
 
 export const reviewTestimonial = asyncHandler(async (req, res) => {
-  const isApproved = Boolean(req.body.isApproved);
-  const item = await Testimonial.findByIdAndUpdate(req.params.id, {
-    isApproved,
-    approvedBy: isApproved ? req.user._id : undefined,
-    approvedAt: isApproved ? new Date() : undefined
-  }, { new: true });
+  if (!mongoose.isObjectIdOrHexString(req.params.id)) throw new ApiError(400, 'Invalid testimonial ID.');
+  if (typeof req.body?.isApproved !== 'boolean') throw new ApiError(400, 'Approval must be true or false.');
+  const item = await Testimonial.findById(req.params.id);
   if (!item) throw new ApiError(404, 'Testimonial not found.');
+  item.isApproved = req.body.isApproved;
+  item.approvedBy = item.isApproved ? req.user._id : undefined;
+  item.approvedAt = item.isApproved ? new Date() : undefined;
+  await item.save();
   res.json({ success: true, item });
 });

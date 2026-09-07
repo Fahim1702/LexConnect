@@ -10,6 +10,7 @@ import Service from '../server/src/models/Service.js';
 import FAQ from '../server/src/models/FAQ.js';
 import Lawyer from '../server/src/models/Lawyer.js';
 import User from '../server/src/models/User.js';
+import Testimonial from '../server/src/models/Testimonial.js';
 import BlogPost from '../server/src/models/BlogPost.js';
 import CaseStudy from '../server/src/models/CaseStudy.js';
 import ConsultationRequest from '../server/src/models/ConsultationRequest.js';
@@ -330,6 +331,50 @@ try {
   await request(`/admin/content/blog/${new mongoose.Types.ObjectId()}`, 'DELETE', undefined, 404, 'admin');
   await request('/lawyer/blog', 'POST', { ...draftPayload, content: '' }, 400, 'candidate');
   console.log('PASS: lawyer drafts stay private until admin publication; authorship, publication dates and hiding are preserved.');
+
+  const reviewPayload = { consultation: working._id, rating: 5, comment: ' Helpful consultation. ', client: user._id, lawyer: lawyer._id, isApproved: true, approvedBy: user._id };
+  await request('/client/testimonials', 'GET', undefined, 401);
+  await request('/client/testimonials', 'POST', reviewPayload, 403, 'candidate');
+  await request('/client/testimonials', 'POST', reviewPayload, 400, 'client'); // cancelled
+  await request(`/admin/consultations/${working._id}`, 'PATCH', { status: 'resolved' }, 200, 'admin');
+  await request('/client/testimonials', 'POST', reviewPayload, 400, 'other');
+  for (const invalid of [{ rating: 0 }, { rating: 6 }, { rating: 2.5 }, { rating: '5' }, { comment: '   ' }, { comment: 'x'.repeat(1201) }, { consultation: 'abc' }]) {
+    await request('/client/testimonials', 'POST', { ...reviewPayload, ...invalid }, 400, 'client');
+  }
+  const review = (await request('/client/testimonials', 'POST', reviewPayload, 201, 'client')).item;
+  assert.equal(review.client, client.id);
+  assert.equal(review.lawyer, provisioned._id);
+  assert.equal(review.comment, 'Helpful consultation.');
+  assert.equal(review.isApproved, false);
+  assert.equal(review.approvedBy, undefined);
+  await request('/client/testimonials', 'POST', reviewPayload, 409, 'client');
+  assert.equal(await Testimonial.countDocuments({ consultation: working._id }), 1);
+  assert.deepEqual((await request('/client/testimonials', 'GET', undefined, 200, 'other')).items, []);
+  assert.equal((await request('/client/testimonials', 'GET', undefined, 200, 'client')).items[0].consultation._id, working._id);
+  assert.equal((await request('/public/home')).data.testimonials.length, 0);
+  await request('/admin/testimonials', 'GET', undefined, 403, 'client');
+  const reviewPath = `/admin/testimonials/${review._id}`;
+  await request(reviewPath, 'PATCH', { isApproved: true }, 403, 'client');
+  await request(reviewPath, 'PATCH', { isApproved: 'false' }, 400, 'admin');
+  await request(reviewPath, 'PATCH', {}, 400, 'admin');
+  const approved = (await request(reviewPath, 'PATCH', { isApproved: true, comment: 'Overwritten' }, 200, 'admin')).item;
+  assert.equal(approved.comment, review.comment);
+  assert.equal(approved.approvedBy, String((await User.findOne({ role: 'admin' }))._id));
+  assert.ok(approved.approvedAt);
+  const publicReview = (await request('/public/home')).data.testimonials[0];
+  assert.equal(publicReview._id, review._id);
+  assert.equal(publicReview.client.name, 'Updated Client');
+  assert.equal(publicReview.client.email, undefined);
+  assert.equal(publicReview.consultation, undefined);
+  assert.equal(publicReview.approvedBy, undefined);
+  assert.equal((await request('/admin/testimonials', 'GET', undefined, 200, 'admin')).items[0].consultation.reference, working.reference);
+  await request(reviewPath, 'PATCH', { isApproved: false }, 200, 'admin');
+  assert.equal((await request('/public/home')).data.testimonials.length, 0);
+  assert.equal((await Testimonial.findById(review._id)).approvedBy, undefined);
+  assert.equal((await Testimonial.findById(review._id)).approvedAt, undefined);
+  await request('/admin/testimonials/abc', 'PATCH', { isApproved: true }, 400, 'admin');
+  await request(`/admin/testimonials/${new mongoose.Types.ObjectId()}`, 'PATCH', { isApproved: true }, 404, 'admin');
+  console.log('PASS: one review per owned resolved consultation, rating validation, admin approval/hiding and public-field privacy.');
 
   await User.collection.insertOne({ name: 'Legacy Admin', email: identities.collision.email, role: 'admin', isActive: true });
   await request('/auth/sync', 'POST', {}, 409, 'collision');

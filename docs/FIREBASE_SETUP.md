@@ -74,7 +74,7 @@ Old MongoDB accounts without `firebaseUid` are not automatically linked by email
 - Admin protection for service CRUD and consultation management.
 - Signed-in client ownership, viewing requests, pending cancellation and profile editing.
 
-Admin overview, lawyer provisioning, assignment and consultation cancellation are also connected. Lawyers can edit their professional profiles and update assigned requests. Lawyer blog drafts and admin publishing are connected. Other admin content/user management, testimonials and service-deletion integrity remain later tasks.
+Admin overview, lawyer provisioning, assignment and consultation cancellation are also connected. Lawyers can edit their professional profiles and update assigned requests. Lawyer blog drafts and admin publishing are connected. Client testimonials and admin approval are also connected. Other admin content/user management and service-deletion integrity remain later tasks.
 
 ## Add a lawyer and test the workflow
 
@@ -95,6 +95,12 @@ Profile creation validates the data before changing the account role and removes
 An active lawyer can create drafts from `/lawyer/blog`. Drafts are visible to their author and admins. The server assigns the author from the signed-in account and prevents lawyers from publishing their own submissions.
 
 Admins can review and edit drafts at `/admin/blog`, then tick **Published** to make them public. **Archive** hides a post without deleting it; editing and publishing it again restores it. The first publication date is retained. Changing a title updates its URL slug, so update any shared links after renaming a published post.
+
+## Client testimonials
+
+After a consultation is resolved, its client can leave one review at `/client/testimonials`. Choose the consultation, a rating from 1 to 5, and a comment of up to 1200 characters. Submitted reviews stay private until an admin approves them at `/admin/testimonials`.
+
+Approved reviews appear on the homepage with the client's name, rating and comment. They do not expose email addresses or consultation references. **Hide** removes a review from the homepage while retaining the submission. Check the flow with two client accounts to confirm that each account only sees its own submissions and cannot review another client's consultation.
 
 ## Automated checks and limits
 

@@ -24,7 +24,7 @@ export const getHome = asyncHandler(async (_req, res) => {
     Service.find({ isActive: true }).sort('-isFeatured title').limit(6),
     Lawyer.find({ isActive: true, isFeatured: true }).populate('user', 'name').populate('services', 'title slug').limit(4),
     CaseStudy.find({ isPublished: true, isFeatured: true }).populate('service', 'title slug').limit(3),
-    Testimonial.find({ isApproved: true }).populate('client', 'name').sort('-approvedAt').limit(4),
+    Testimonial.find({ isApproved: true }).select('client rating comment approvedAt').populate('client', 'name').sort('-approvedAt').limit(4),
     Lawyer.countDocuments({ isActive: true }),
     CaseStudy.countDocuments({ isPublished: true })
   ]);
