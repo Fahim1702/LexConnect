@@ -16,6 +16,12 @@ const serviceSchema = new mongoose.Schema({  // defines the structure of a legal
         required: true
     },
 
+    // Optional display fields used by the public website and starter data.
+    slug: String,
+    summary: String,
+    icon: String,
+    isFeatured: { type: Boolean, default: false },
+
     isActive: {
         type: Boolean,
         default: true

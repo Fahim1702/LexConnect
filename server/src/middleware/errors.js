@@ -5,7 +5,7 @@ export function notFound(req, _res, next) {
 }
 
 export function errorHandler(error, _req, res, _next) {
-  let statusCode = error.statusCode || 500;
+  let statusCode = error.statusCode || error.status || 500;
   let message = error.message || 'Something went wrong.';
 
   if (error.name === 'ValidationError') {
@@ -14,7 +14,7 @@ export function errorHandler(error, _req, res, _next) {
   }
   if (error.code === 11000) {
     statusCode = 409;
-    message = `A record with that ${Object.keys(error.keyPattern).join(', ')} already exists.`;
+    message = `A record with that ${Object.keys(error.keyPattern || {}).join(', ') || 'value'} already exists.`;
   }
   if (error.name === 'CastError') {
     statusCode = 400;
@@ -25,10 +25,12 @@ export function errorHandler(error, _req, res, _next) {
     message = 'Your session is invalid or has expired.';
   }
 
+  if (error.type === 'entity.parse.failed') message = 'Request body must contain valid JSON.';
+  if (statusCode >= 500) message = 'An unexpected server error occurred.';
+
   res.status(statusCode).json({
     success: false,
     message,
-    ...(error.details ? { details: error.details } : {}),
-    ...(process.env.NODE_ENV === 'development' ? { stack: error.stack } : {})
+    ...(error.details ? { details: error.details } : {})
   });
 }

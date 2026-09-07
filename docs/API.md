@@ -1,48 +1,63 @@
-# API route map
+# Current API contracts
 
-All routes are prefixed by `/api`.
+Base URL: `http://localhost:5000/api`. JSON responses use `success`. This describes the routes actually mounted by `server/src/server.js` on `backend-auth`.
 
-## Authentication
+## Public website
 
-- `POST /auth/register` — create a client account
-- `POST /auth/login` — issue JWT
-- `POST /auth/logout` — clear auth cookie
-- `GET /auth/me`, `PATCH /auth/me` — current account
+| Method and path | Response |
+|---|---|
+| GET /health | `{ success, message }` |
+| GET /public/home | `{ success, data: { services, lawyers, caseStudies, testimonials, stats } }` |
+| GET /public/services | `{ success, items, pagination }` |
+| GET /public/services/:slugOrId | `{ success, service, lawyers, caseStudies }` |
+| GET /public/lawyers | `{ success, items, pagination }` |
+| GET /public/lawyers/:slugOrId | `{ success, lawyer, caseStudies }` |
+| GET /public/case-studies | `{ success, items }` |
+| GET /public/case-studies/:slugOrId | `{ success, item }` |
+| GET /public/blog | `{ success, items, pagination }` |
+| GET /public/blog/:slugOrId | `{ success, item }` |
+| GET /public/faqs | `{ success, items }` |
+| POST /public/contact | 201: `{ success, message, id }` |
 
-Send the JWT as `Authorization: Bearer <token>`. The API also accepts the HTTP-only cookie it sets on login.
+Services support `q`, `category`, `page`, `limit`; lawyers support `q`, `service`, `minExperience`, `page`, `limit`; blog supports `q`, `category`, `page`, `limit`. Page and limit are positive integers; limit is capped at 50. Empty lists are valid responses.
 
-## Public
+Contact body: required `name`, `email`, `subject`, `message`; optional `phone`.
 
-- `GET /public/home`
-- `GET /public/services`, `GET /public/services/:slugOrId`
-- `GET /public/lawyers`, `GET /public/lawyers/:slugOrId`
-- `GET /public/case-studies`, `GET /public/case-studies/:slugOrId`
-- `GET /public/blog`, `GET /public/blog/:slugOrId`
-- `GET /public/faqs`
-- `POST /public/contact`
-- `POST /consultations` — guest or authenticated client
+## Services CRUD
 
-## Client role
+- GET /services: `{ success, items }`.
+- GET /services/:id: `{ success, item }`.
+- POST /services: required `title`, `category`, `description`; returns 201 and `item`.
+- PUT /services/:id: editable `title`, `category`, `description`, `isActive`; returns updated `item`.
+- DELETE /services/:id: permanently removes that service; returns `{ success, message }`.
 
-- `GET /client/consultations`
-- `PATCH /client/consultations/:id/cancel`
-- `GET /client/testimonials`
-- `POST /client/testimonials`
+## Consultations
 
-## Lawyer role
+POST /consultations accepts:
 
-- `GET /lawyer/profile`, `PATCH /lawyer/profile`
-- `GET /lawyer/consultations`, `PATCH /lawyer/consultations/:id`
-- `GET /lawyer/blog`, `POST /lawyer/blog`
+```json
+{
+  "guestName": "Example Client",
+  "guestEmail": "client@example.com",
+  "guestPhone": "01700000000",
+  "service": "COPY_AN_EXISTING_SERVICE_ID",
+  "subject": "Request a consultation",
+  "details": "A brief description of the matter.",
+  "preferredDate": "",
+  "preferredLawyer": ""
+}
+```
 
-## Admin role
+The first six fields are required. The service must exist and be active. An optional preferred lawyer must also exist and be active. The response is 201 with `{ success, message, request }`, including a generated reference and `pending` status. The client cannot choose the reference or status at creation.
 
-- `GET /admin/overview`
-- `GET|POST /admin/lawyers`, `PATCH|DELETE /admin/lawyers/:id`
-- `GET|POST /admin/content/:resource`, `GET|PATCH|DELETE /admin/content/:resource/:id`
-- Valid content resources: `services`, `case-studies`, `blog`, `faqs`
-- `GET /admin/consultations`, `PATCH|DELETE /admin/consultations/:id`
-- `GET /admin/users`, `PATCH /admin/users/:id`
-- `GET /admin/testimonials`, `PATCH /admin/testimonials/:id`
+- GET /consultations: `{ success, items }`, newest first.
+- GET /consultations/:id: `{ success, item }`.
+- PUT /consultations/:id: body such as `{ "status": "in-review" }`; returns updated `item`.
 
-Delete endpoints soft-archive public content and consultations instead of permanently deleting records.
+Allowed statuses: `pending`, `assigned`, `in-review`, `scheduled`, `resolved`, `cancelled`. Read/update responses populate the service's ID, title and category. If that service has been deleted, `service` is `null`.
+
+Malformed IDs or invalid data return 400; missing records return 404. Unknown routes and malformed JSON also return JSON errors.
+
+## Pending integration
+
+`/auth/*`, `/client/*`, `/lawyer/*` and `/admin/*` are not mounted yet. Management endpoints currently have no authentication or role protection; they are for the local rebuild until that checkpoint is implemented. Earlier documentation of the full app does not describe the current running backend.

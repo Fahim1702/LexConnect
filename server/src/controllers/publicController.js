@@ -21,7 +21,7 @@ const identifierQuery = (value) =>
 
 export const getHome = asyncHandler(async (_req, res) => {
   const [services, lawyers, caseStudies, testimonials, lawyerCount, caseCount] = await Promise.all([
-    Service.find({ isActive: true, isFeatured: true }).limit(6),
+    Service.find({ isActive: true }).sort('-isFeatured title').limit(6),
     Lawyer.find({ isActive: true, isFeatured: true }).populate('user', 'name').populate('services', 'title slug').limit(4),
     CaseStudy.find({ isPublished: true, isFeatured: true }).populate('service', 'title slug').limit(3),
     Testimonial.find({ isApproved: true }).populate('client', 'name').sort('-approvedAt').limit(4),
@@ -124,7 +124,7 @@ export const listFAQs = asyncHandler(async (_req, res) => {
 });
 
 export const createContactMessage = asyncHandler(async (req, res) => {
-  const { name, email, phone, subject, message } = req.body;
+  const { name, email, phone, subject, message } = req.body || {};
   if (!name || !email || !subject || !message) throw new ApiError(400, 'Name, email, subject, and message are required.');
   const item = await ContactMessage.create({ name, email, phone, subject, message });
   res.status(201).json({ success: true, message: 'Your message has been received.', id: item._id });

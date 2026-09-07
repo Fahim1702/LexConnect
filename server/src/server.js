@@ -1,21 +1,23 @@
-import 'dotenv/config';
+import './config/env.js';
 import express from 'express';
 import cors from 'cors';
 import mongoose from 'mongoose';
-import dns from 'node:dns';
+import { fileURLToPath } from 'node:url';
+import { resolve } from 'node:path';
 import Service from './models/Service.js';
 import ConsultationRequest from './models/ConsultationRequest.js';
-
-// Needed on my network so Node can resolve MongoDB Atlas
-dns.setServers(['1.1.1.1', '1.0.0.1']);
+import Lawyer from './models/Lawyer.js';
+import publicRoutes from './routes/publicRoutes.js';
+import { connectDatabase } from './config/db.js';
+import { notFound, errorHandler } from './middleware/errors.js';
 
 const app = express();    //backend application
 
 const PORT = process.env.PORT || 5000;
-const MONGODB_URI = process.env.MONGODB_URI;
-
-app.use(cors());    //enable cross origin requests
+const allowedOrigins = (process.env.CLIENT_URL || 'http://localhost:5173').split(',').map((origin) => origin.trim());
+app.use(cors({ origin: allowedOrigins, credentials: true }));
 app.use(express.json());    //Express understands json sent by frontend
+app.use('/api/public', publicRoutes);
 
 app.get('/api/health', (req, res) => {    // first route
     res.json({
@@ -161,7 +163,7 @@ app.delete('/api/services/:id', async (req, res) => {
 
 app.post('/api/consultations', async (req, res) => {
     // Read only the fields a client can supply when submitting a request.
-    const { guestName, guestEmail, guestPhone, service, subject, details, preferredDate } = req.body || {};
+    const { guestName, guestEmail, guestPhone, service, subject, details, preferredDate, preferredLawyer } = req.body || {};
 
     if (!mongoose.isObjectIdOrHexString(service)) {
         return res.status(400).json({
@@ -187,6 +189,16 @@ app.post('/api/consultations', async (req, res) => {
             });
         }
 
+        if (preferredLawyer !== undefined && preferredLawyer !== '' && preferredLawyer !== null) {
+            if (!mongoose.isObjectIdOrHexString(preferredLawyer)) {
+                return res.status(400).json({ success: false, message: 'Invalid preferred lawyer ID' });
+            }
+            const lawyer = await Lawyer.findOne({ _id: preferredLawyer, isActive: true });
+            if (!lawyer) {
+                return res.status(400).json({ success: false, message: 'The preferred lawyer is not available' });
+            }
+        }
+
         const request = await ConsultationRequest.create({
             guestName,
             guestEmail,
@@ -194,6 +206,7 @@ app.post('/api/consultations', async (req, res) => {
             service,
             subject,
             details,
+            preferredLawyer: preferredLawyer || undefined,
             preferredDate: preferredDate === '' ? undefined : preferredDate
         });
 
@@ -321,19 +334,35 @@ app.put('/api/consultations/:id', async (req, res) => {
 app.get('/', (req, res) => {
     res.send('LexConnect backend is running');
 });
+
+app.use(notFound);
+app.use(errorHandler);
+
 async function startServer() {
     try {
-        await mongoose.connect(MONGODB_URI);
+        await connectDatabase();
 
-        console.log('MongoDB connected');
-
-        app.listen(PORT, () => {    // after MONGODB connects we start EXPRESS
+        const server = app.listen(PORT, () => {    // after MONGODB connects we start EXPRESS
             console.log(`Server running on http://localhost:${PORT}`);
+        });
+        server.on('error', async (error) => {
+            console.error(error.code === 'EADDRINUSE'
+                ? `Port ${PORT} is already in use. Stop the other API or change PORT and VITE_API_URL together.`
+                : 'Could not start the API listener. Check PORT and local network permissions.');
+            await mongoose.disconnect();
+            process.exitCode = 1;
         });
 
     } catch (error) {
-        console.error('Database connection failed:', error.message);
+        console.error('Database connection failed. Check MONGODB_URI in server/.env, your MongoDB server or Atlas network access, and DNS_SERVERS.');
+        await mongoose.disconnect();
+        process.exitCode = 1;
     }
 }
 
-startServer();
+// Importing the app for tests does not start a server or connect to MongoDB.
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+    startServer();
+}
+
+export default app;

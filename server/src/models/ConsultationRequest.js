@@ -47,6 +47,10 @@ const consultationRequestSchema = new mongoose.Schema(
     preferredDate: {
       type: Date
     },
+    preferredLawyer: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Lawyer'
+    },
     status: {
       type: String,
       enum: ['pending', 'assigned', 'in-review', 'scheduled', 'resolved', 'cancelled'],
