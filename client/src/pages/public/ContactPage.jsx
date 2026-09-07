@@ -1,164 +1,216 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { ArrowRight, Mail, MapPin, Phone, Send } from 'lucide-react';
 import api from '../../api/client.js';
 import { ErrorAlert, SuccessAlert } from '../../components/Ui.jsx';
-import { PageHero } from '../../components/public/PublicUi.jsx';
-import usePageTitle from '../../hooks/usePageTitle.js';
-
-const EMPTY_FORM = { name: '', email: '', phone: '', subject: '', message: '' };
-const MESSAGE_LIMIT = 1200;
 
 export default function ContactPage() {
-  usePageTitle('Contact');
-  const [form, setForm] = useState(EMPTY_FORM);
-  const [status, setStatus] = useState({ loading: false, error: '', success: '' });
+  const [form, setForm] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    subject: '',
+    message: ''
+  });
 
-  const updateField = (field, value) => {
-    setForm((current) => ({ ...current, [field]: value }));
-    if (status.error || status.success) setStatus({ loading: false, error: '', success: '' });
-  };
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const submit = async (event) => {
+  function handleChange(event) {
+    const { name, value } = event.target;
+
+    setForm({
+      ...form,
+      [name]: value
+    });
+  }
+
+  function validateForm() {
+    if (!form.name.trim()) {
+      return 'Name is required.';
+    }
+
+    if (!form.email.trim()) {
+      return 'Email is required.';
+    }
+
+    if (!form.email.includes('@')) {
+      return 'Enter a valid email address.';
+    }
+
+    if (!form.subject.trim()) {
+      return 'Subject is required.';
+    }
+
+    if (!form.message.trim()) {
+      return 'Message is required.';
+    }
+
+    return '';
+  }
+
+  async function handleSubmit(event) {
     event.preventDefault();
-    setStatus({ loading: true, error: '', success: '' });
+
+    setError('');
+    setSuccess('');
+
+    const validationError = validateForm();
+
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
 
     try {
-      const { data } = await api.post('/public/contact', form);
-      setForm(EMPTY_FORM);
-      setStatus({ loading: false, error: '', success: data.message || 'Your message has been sent.' });
-    } catch (error) {
-      setStatus({ loading: false, error: error.message, success: '' });
+      setLoading(true);
+
+      const response = await api.post('/public/contact', form);
+
+      setSuccess(
+        response.data.message || 'Message sent successfully.'
+      );
+
+      setForm({
+        name: '',
+        email: '',
+        phone: '',
+        subject: '',
+        message: ''
+      });
+
+    } catch (err) {
+      setError(
+        err.response?.data?.message ||
+        err.message ||
+        'Unable to send message.'
+      );
+    } finally {
+      setLoading(false);
     }
-  };
+  }
 
   return (
-    <>
-      <PageHero
-        eyebrow="Contact"
-        title="Let’s start a conversation"
-        description="Send us a general question, feedback, or partnership enquiry. For help with a legal matter, request a consultation instead."
-      />
-      <section className="section-pad">
-        <div className="container-page grid gap-8 lg:grid-cols-[0.75fr_1.25fr] lg:gap-12">
-          <aside className="h-fit rounded-2xl bg-ink p-6 text-white sm:p-8">
-            <p className="eyebrow">Reach us</p>
-            <h2 className="text-2xl font-bold sm:text-3xl">We are here to help you find the right next step.</h2>
-            <p className="mt-4 leading-7 text-white/65">Our team will review your message and respond through the contact details you provide.</p>
-            <address className="mt-8 grid gap-5 text-sm not-italic">
-              <ContactItem icon={MapPin} label="Office">Bashundhara, Dhaka, Bangladesh</ContactItem>
-              <ContactItem icon={Phone} label="Phone" href="tel:+8801700000000">+880 1700-000000</ContactItem>
-              <ContactItem icon={Mail} label="Email" href="mailto:hello@lexconnect.test">hello@lexconnect.test</ContactItem>
-            </address>
-            <div className="mt-8 border-t border-white/15 pt-6">
-              <p className="font-bold">Do you need legal assistance?</p>
-              <p className="mt-2 text-sm leading-6 text-white/65">Share the basic details securely through our consultation request form.</p>
-              <Link className="mt-4 inline-flex items-center gap-2 font-bold text-gold transition hover:text-white" to="/consultation">
-                Request a consultation <ArrowRight size={17} aria-hidden="true" />
-              </Link>
-            </div>
-          </aside>
+    <section className="py-16">
+      <div className="container-page grid gap-10 lg:grid-cols-2">
 
-          <form className="card p-5 sm:p-8" onSubmit={submit}>
-            <div className="mb-7">
-              <p className="eyebrow">Send a message</p>
-              <h2 className="text-2xl font-bold sm:text-3xl">How can we help?</h2>
-              <p className="mt-2 text-sm text-slate-500">Fields marked with an asterisk are required.</p>
-            </div>
-            <ErrorAlert message={status.error} />
-            <SuccessAlert message={status.success} />
+        <div>
+          <h1 className="text-4xl font-bold">
+            Contact Us
+          </h1>
 
-            <div className="grid gap-5 sm:grid-cols-2">
-              <Field
-                autoComplete="name"
-                label="Name"
+          <p className="mt-4 max-w-xl text-gray-600">
+            Send us a message for general questions about LexConnect.
+            For legal assistance, use the consultation request form.
+          </p>
+
+          <div className="mt-8 space-y-3 text-gray-700">
+            <p>
+              <strong>Address:</strong> Bashundhara, Dhaka, Bangladesh
+            </p>
+
+            <p>
+              <strong>Phone:</strong> +880 1700-000000
+            </p>
+
+            <p>
+              <strong>Email:</strong> hello@lexconnect.test
+            </p>
+          </div>
+        </div>
+
+        <form
+          onSubmit={handleSubmit}
+          className="rounded-lg border bg-white p-6 shadow-sm"
+        >
+
+          <ErrorAlert message={error} />
+          <SuccessAlert message={success} />
+
+          <div className="grid gap-5 sm:grid-cols-2">
+
+            <div>
+              <label className="mb-2 block font-semibold">
+                Name
+              </label>
+
+              <input
+                type="text"
                 name="name"
-                required
                 value={form.name}
-                onChange={(value) => updateField('name', value)}
-              />
-              <Field
-                autoComplete="email"
-                label="Email"
-                name="email"
-                type="email"
-                required
-                value={form.email}
-                onChange={(value) => updateField('email', value)}
-              />
-              <Field
-                autoComplete="tel"
-                label="Phone"
-                name="phone"
-                type="tel"
-                value={form.phone}
-                onChange={(value) => updateField('phone', value)}
-              />
-              <Field
-                label="Subject"
-                name="subject"
-                required
-                value={form.subject}
-                onChange={(value) => updateField('subject', value)}
+                onChange={handleChange}
+                className="w-full rounded border px-4 py-3"
               />
             </div>
 
-            <label className="mt-5 block" htmlFor="contact-message">
-              <span className="label">Message *</span>
-              <textarea
-                className="input min-h-40 resize-y"
-                id="contact-message"
-                maxLength={MESSAGE_LIMIT}
-                name="message"
-                placeholder="Write your message here..."
-                required
-                value={form.message}
-                onChange={(event) => updateField('message', event.target.value)}
+            <div>
+              <label className="mb-2 block font-semibold">
+                Email
+              </label>
+
+              <input
+                type="email"
+                name="email"
+                value={form.email}
+                onChange={handleChange}
+                className="w-full rounded border px-4 py-3"
               />
-              <span className="mt-1.5 block text-right text-xs text-slate-400" aria-live="polite">
-                {form.message.length}/{MESSAGE_LIMIT}
-              </span>
+            </div>
+
+            <div>
+              <label className="mb-2 block font-semibold">
+                Phone
+              </label>
+
+              <input
+                type="text"
+                name="phone"
+                value={form.phone}
+                onChange={handleChange}
+                className="w-full rounded border px-4 py-3"
+              />
+            </div>
+
+            <div>
+              <label className="mb-2 block font-semibold">
+                Subject
+              </label>
+
+              <input
+                type="text"
+                name="subject"
+                value={form.subject}
+                onChange={handleChange}
+                className="w-full rounded border px-4 py-3"
+              />
+            </div>
+
+          </div>
+
+          <div className="mt-5">
+            <label className="mb-2 block font-semibold">
+              Message
             </label>
 
-            <button className="btn-primary mt-5 w-full sm:w-auto" disabled={status.loading} type="submit">
-              <Send size={17} aria-hidden="true" />
-              {status.loading ? 'Sending…' : 'Send message'}
-            </button>
-          </form>
-        </div>
-      </section>
-    </>
-  );
-}
+            <textarea
+              name="message"
+              value={form.message}
+              onChange={handleChange}
+              rows="6"
+              className="w-full rounded border px-4 py-3"
+            />
+          </div>
 
-function ContactItem({ icon: Icon, label, href, children }) {
-  const content = (
-    <>
-      <Icon className="mt-0.5 shrink-0 text-gold" size={20} aria-hidden="true" />
-      <span><span className="block font-bold text-white">{label}</span><span className="mt-0.5 block text-white/65">{children}</span></span>
-    </>
-  );
+          <button
+            type="submit"
+            disabled={loading}
+            className="mt-5 rounded bg-blue-700 px-5 py-3 font-semibold text-white disabled:opacity-60"
+          >
+            {loading ? 'Sending...' : 'Send Message'}
+          </button>
 
-  return href
-    ? <a className="flex gap-3 rounded-lg transition hover:text-gold" href={href}>{content}</a>
-    : <div className="flex gap-3">{content}</div>;
-}
+        </form>
 
-function Field({ autoComplete, label, name, value, onChange, type = 'text', required = false }) {
-  const id = `contact-${name}`;
-  return (
-    <label htmlFor={id}>
-      <span className="label">{label}{required ? ' *' : ''}</span>
-      <input
-        autoComplete={autoComplete}
-        className="input"
-        id={id}
-        name={name}
-        type={type}
-        required={required}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-      />
-    </label>
+      </div>
+    </section>
   );
 }
