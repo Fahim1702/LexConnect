@@ -23,7 +23,18 @@ Services support `q`, `category`, `page`, `limit`; lawyers support `q`, `service
 
 Contact body: required `name`, `email`, `subject`, `message`; optional `phone`.
 
-## Services CRUD
+## Firebase authentication
+
+React registers and signs in directly through Firebase's email/password SDK. Send a current Firebase ID token in `Authorization: Bearer <token>`. The API verifies it with Firebase Admin, including revocation/disabled-user checks, and reads roles from MongoDB.
+
+- POST /auth/sync: requires a verified token; creates or loads the MongoDB profile. Optional `name` and `phone` are editable. UID and email come from the verified token; new users always get role `client`.
+- GET /auth/me: requires an active synchronized user; returns `{ success, user }`.
+- PATCH /auth/me: updates only `name` and `phone`.
+- POST /auth/logout: revokes the Firebase user's existing sessions; the frontend also signs out locally.
+
+There are no custom `/auth/login` or `/auth/register` password endpoints. The backend never accepts a client-selected role or signs its own login JWT. See [Firebase setup](FIREBASE_SETUP.md).
+
+## Services CRUD (administrator only)
 
 - GET /services: `{ success, items }`.
 - GET /services/:id: `{ success, item }`.
@@ -48,16 +59,23 @@ POST /consultations accepts:
 }
 ```
 
-The first six fields are required. The service must exist and be active. An optional preferred lawyer must also exist and be active. The response is 201 with `{ success, message, request }`, including a generated reference and `pending` status. The client cannot choose the reference or status at creation.
+For guests, the first six fields are required. With a valid token, the user's saved name/email are used and a client account is linked automatically; a supplied phone can update the contact number for this request. The service must exist and be active. An optional preferred lawyer must also exist and be active. The response is 201 with `{ success, message, request }`, including a generated reference and `pending` status. The client cannot choose the owner, reference or status at creation. An invalid supplied token is rejected instead of being treated as a guest.
 
-- GET /consultations: `{ success, items }`, newest first.
-- GET /consultations/:id: `{ success, item }`.
-- PUT /consultations/:id: body such as `{ "status": "in-review" }`; returns updated `item`.
+- GET /consultations: administrator only; `{ success, items }`, newest first.
+- GET /consultations/:id: administrator only; `{ success, item }`.
+- PUT /consultations/:id: administrator only; body such as `{ "status": "in-review" }`; returns updated `item`.
 
-Allowed statuses: `pending`, `assigned`, `in-review`, `scheduled`, `resolved`, `cancelled`. Read/update responses populate the service's ID, title and category. If that service has been deleted, `service` is `null`.
+## Client requests (active client role only)
+
+- GET /client/consultations: returns only the signed-in client's requests as `{ success, items }`.
+- PATCH /client/consultations/:id/cancel: cancels only an owned pending request. Other people's and guest requests return 404. An owned non-pending request returns 400.
+
+Guest requests are never automatically claimed by matching email addresses.
+
+Allowed statuses: `pending`, `assigned`, `in-review`, `scheduled`, `resolved`, `cancelled`. Management read/update responses populate the service's ID, title and category; the client list populates its ID and title. If that service has been deleted, `service` is `null`.
 
 Malformed IDs or invalid data return 400; missing records return 404. Unknown routes and malformed JSON also return JSON errors.
 
 ## Pending integration
 
-`/auth/*`, `/client/*`, `/lawyer/*` and `/admin/*` are not mounted yet. Management endpoints currently have no authentication or role protection; they are for the local rebuild until that checkpoint is implemented. Earlier documentation of the full app does not describe the current running backend.
+`/lawyer/*`, `/admin/*` and client testimonial routes are not mounted yet. The existing management routes listed above are protected with Firebase verification and the MongoDB admin role. Lawyer/admin dashboard wiring, assignment and testimonials remain pending.

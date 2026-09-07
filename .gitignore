@@ -9,3 +9,7 @@ dist
 .idea
 .vscode
 coverage
+# Firebase Admin credentials belong outside the repository.
+**/*firebase-adminsdk*.json
+**/serviceAccount*.json
+**/firebase-admin.json

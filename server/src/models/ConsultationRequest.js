@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 
 const consultationRequestSchema = new mongoose.Schema(
   {
+    client: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     // A readable reference based on MongoDB's automatically generated _id.
     reference: {
       type: String,

@@ -8,6 +8,9 @@ import Service from './models/Service.js';
 import ConsultationRequest from './models/ConsultationRequest.js';
 import Lawyer from './models/Lawyer.js';
 import publicRoutes from './routes/publicRoutes.js';
+import authRoutes from './routes/authRoutes.js';
+import clientRoutes from './routes/clientRoutes.js';
+import { protect, authorize, optionalAuth } from './middleware/auth.js';
 import { connectDatabase } from './config/db.js';
 import { notFound, errorHandler } from './middleware/errors.js';
 
@@ -18,6 +21,8 @@ const allowedOrigins = (process.env.CLIENT_URL || 'http://localhost:5173').split
 app.use(cors({ origin: allowedOrigins, credentials: true }));
 app.use(express.json());    //Express understands json sent by frontend
 app.use('/api/public', publicRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/client', clientRoutes);
 
 app.get('/api/health', (req, res) => {    // first route
     res.json({
@@ -26,7 +31,7 @@ app.get('/api/health', (req, res) => {    // first route
     });
 });
 
-app.get('/api/services', async (req, res) => {
+app.get('/api/services', protect, authorize('admin'), async (req, res) => {
     try {
         const services = await Service.find();    //Read operation
 
@@ -41,7 +46,7 @@ app.get('/api/services', async (req, res) => {
         });
     }
 });
-app.get('/api/services/:id', async (req, res) => {
+app.get('/api/services/:id', protect, authorize('admin'), async (req, res) => {
     try {
         const service = await Service.findById(req.params.id);
 
@@ -71,7 +76,7 @@ app.get('/api/services/:id', async (req, res) => {
     }
 });
 
-app.post('/api/services', async (req, res) => {     // CREATE OP
+app.post('/api/services', protect, authorize('admin'), async (req, res) => {     // CREATE OP
     try {
         const service = await Service.create(req.body);
 
@@ -87,7 +92,7 @@ app.post('/api/services', async (req, res) => {     // CREATE OP
     }
 });
 
-app.put('/api/services/:id', async (req, res) => {
+app.put('/api/services/:id', protect, authorize('admin'), async (req, res) => {
     if (!mongoose.isObjectIdOrHexString(req.params.id)) {
         return res.status(400).json({
             success: false,
@@ -130,7 +135,7 @@ app.put('/api/services/:id', async (req, res) => {
     }
 });
 
-app.delete('/api/services/:id', async (req, res) => {
+app.delete('/api/services/:id', protect, authorize('admin'), async (req, res) => {
     if (!mongoose.isObjectIdOrHexString(req.params.id)) {
         return res.status(400).json({
             success: false,
@@ -161,9 +166,12 @@ app.delete('/api/services/:id', async (req, res) => {
     }
 });
 
-app.post('/api/consultations', async (req, res) => {
+app.post('/api/consultations', optionalAuth, async (req, res) => {
     // Read only the fields a client can supply when submitting a request.
-    const { guestName, guestEmail, guestPhone, service, subject, details, preferredDate, preferredLawyer } = req.body || {};
+    const { service, subject, details, preferredDate, preferredLawyer } = req.body || {};
+    const guestName = req.user?.name || req.body?.guestName;
+    const guestEmail = req.user?.email || req.body?.guestEmail;
+    const guestPhone = req.body?.guestPhone || req.user?.phone;
 
     if (!mongoose.isObjectIdOrHexString(service)) {
         return res.status(400).json({
@@ -200,6 +208,7 @@ app.post('/api/consultations', async (req, res) => {
         }
 
         const request = await ConsultationRequest.create({
+            client: req.user?.role === 'client' ? req.user._id : undefined,
             guestName,
             guestEmail,
             guestPhone,
@@ -230,7 +239,7 @@ app.post('/api/consultations', async (req, res) => {
     }
 });
 
-app.get('/api/consultations', async (req, res) => {
+app.get('/api/consultations', protect, authorize('admin'), async (req, res) => {
     try {
         // Show the newest requests first, with the selected service's details.
         const requests = await ConsultationRequest.find()
@@ -249,7 +258,7 @@ app.get('/api/consultations', async (req, res) => {
     }
 });
 
-app.get('/api/consultations/:id', async (req, res) => {
+app.get('/api/consultations/:id', protect, authorize('admin'), async (req, res) => {
     if (!mongoose.isObjectIdOrHexString(req.params.id)) {
         return res.status(400).json({
             success: false,
@@ -280,7 +289,7 @@ app.get('/api/consultations/:id', async (req, res) => {
     }
 });
 
-app.put('/api/consultations/:id', async (req, res) => {
+app.put('/api/consultations/:id', protect, authorize('admin'), async (req, res) => {
     if (!mongoose.isObjectIdOrHexString(req.params.id)) {
         return res.status(400).json({
             success: false,

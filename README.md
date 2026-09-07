@@ -6,8 +6,10 @@ A React, Express and MongoDB course project, currently being rebuilt in small, e
 
 - Public home, services, lawyer directory, case studies, blog and FAQ APIs.
 - Public contact and guest consultation forms, including an optional preferred lawyer.
-- Service CRUD and consultation create/read/status-update APIs.
-- Login, registration and client/lawyer/admin dashboards are **not yet connected to this backend**. Their older files remain for later integration; their presence does not mean those features are complete.
+- Firebase email/password registration, sign-in, sign-out and MongoDB profile synchronization, once the team configures Firebase.
+- Client profile editing and viewing/cancelling owned pending consultations.
+- Admin-only service CRUD and consultation list/read/status-update APIs.
+- Lawyer/admin dashboard integration, assignment and testimonials remain separate checkpoints. Their older files are not all connected yet.
 
 The running backend is `server/src/server.js`. It mounts the existing public routes and retains the CRUD routes built during the lab. `server/src/app.js` is the older full-app assembly and is not the current entry point.
 
@@ -22,7 +24,7 @@ npm ci
 npm run setup
 ```
 
-`setup` creates missing `server/.env` and `client/.env` files. It generates a JWT secret for a new server environment and never overwrites existing files or prints secrets.
+`setup` creates missing `server/.env` and `client/.env` files. It never overwrites existing files or prints credentials. Follow [Firebase setup](docs/FIREBASE_SETUP.md) to enable sign-in; existing environment files need the new Firebase keys added manually.
 
 Edit **your own** `server/.env`:
 
@@ -52,7 +54,7 @@ npm run test:integration
 
 `check` verifies frontend imports, setup behavior, backend HTTP/CORS/error tests and the frontend production build. It does not require MongoDB.
 
-`test:integration` uses the configured MongoDB server but overrides the database name with a unique `lexconnect_smoke_...` database. It tests empty data, safe repeat seeding, public routes, CRUD and form submissions, then removes only that temporary database. The database user needs permission to create and remove that test database. It does not use the configured application's collections.
+`test:integration` uses the configured MongoDB server but overrides the database name with a unique `lexconnect_smoke_...` database. It tests public routes, protected CRUD, role enforcement, identity synchronization and client ownership, then removes only that temporary database. Firebase verification is mocked in automated tests; real Firebase credentials and signature verification must also be tested using the manual steps in the setup guide. The database user needs permission to create and remove the test database. The configured application's collections are untouched.
 
 ## Common setup problems
 
@@ -62,7 +64,8 @@ npm run test:integration
 | Port already in use | Stop your earlier development server or change the corresponding port and environment variables together. |
 | Browser shows Network Error | Confirm the API health URL responds and `CLIENT_URL` exactly matches the browser origin. |
 | No services | Run the optional starter seed against your own development database. |
-| Login/dashboard requests fail | Those workflows are the next integration step on this branch. |
+| Sign-in is unavailable | Complete the Firebase setup guide and restart both processes. |
+| Lawyer/admin dashboard requests fail | Those dashboard integrations remain pending; the basic client request/profile pages are connected. |
 | Teammates still get missing public routes | Confirm they have the integration commit from `backend-auth`; installing dependencies alone does not update their branch. |
 
 ## Team workflow
@@ -71,4 +74,6 @@ Commit only source code and `.env.example` templates. Keep real environment file
 
 See [team handoff](docs/TEAM_HANDOFF.md) for branch and ownership guidance and [API contracts](docs/API.md) for implemented endpoints. Changes on `backend-auth` must be pushed before teammates can fetch them. Do not commit directly to or merge into `main` without the team's review.
 
-The CRUD management endpoints are currently part of the local development exercise. Authentication and role protection must be completed before a shared public deployment.
+Management APIs now require a verified Firebase ID token and an active MongoDB administrator role. New accounts always start as clients. Role assignment is a trusted administrator action, never a registration field.
+
+The Firebase Admin dependency currently has six moderate transitive audit findings involving `uuid`. Compatible audit fixes were applied; no forced downgrade or untested dependency override was introduced.

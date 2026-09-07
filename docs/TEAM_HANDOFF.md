@@ -25,13 +25,13 @@ Configure your own MongoDB connection in `server/.env`, optionally run `npm run 
 
 ## Available for frontend work now
 
-Public page APIs, contact and guest consultation submission, service CRUD, and consultation read/status updates are mounted by `server/src/server.js`. A service link must use `service.slug || service._id`, because services created during the rebuild may have no slug. Its summary can fall back to `description`.
+Public page APIs, contact and guest consultation submission are mounted by `server/src/server.js`. Firebase registration/login, client profile and owned requests are connected once the team configures the shared Firebase project. Management CRUD now needs an administrator's Firebase ID token. A service link must use `service.slug || service._id`, because services created during the rebuild may have no slug. Its summary can fall back to `description`.
 
 The public pages can load an empty database. Add public records when needed; the starter seed only adds services and a FAQ.
 
 ## Still pending
 
-Registration, login, protected routes and role-specific dashboard integration remain separate coding checkpoints. The older controllers, routes and `server/src/app.js` are not automatically active. Do not treat their route list or old demo accounts as a working contract on this branch.
+Follow [Firebase setup](FIREBASE_SETUP.md) before testing login. Lawyer/admin dashboards, consultation assignment and testimonials remain separate coding checkpoints. The older controllers, routes and `server/src/app.js` are not automatically active. Old password-based demo accounts must be migrated explicitly; the API never links them to Firebase by email alone.
 
 ## Before sharing a checkpoint
 
