@@ -12,7 +12,7 @@ import { asyncHandler } from '../utils/asyncHandler.js';
 
 function resourceFor(name) {
   const resource = adminResources[name];
-  if (!resource) throw new ApiError(404, 'Admin resource not found.');
+  if (!['services', 'case-studies', 'faqs'].includes(name) || !resource) throw new ApiError(404, 'Admin resource not found.');
   return resource;
 }
 
@@ -39,29 +39,52 @@ export const getResource = asyncHandler(async (req, res) => {
   res.json({ success: true, item });
 });
 
+const contentFields = {
+  services: ['title', 'category', 'description', 'summary', 'icon', 'isFeatured', 'isActive'],
+  'case-studies': ['title', 'service', 'lawyers', 'summary', 'challenge', 'approach', 'outcome', 'imageUrl', 'isFeatured', 'isPublished'],
+  faqs: ['question', 'answer', 'category', 'sortOrder', 'isActive']
+};
+
+async function contentPayload(req) {
+  const body = req.body || {};
+  const payload = Object.fromEntries(contentFields[req.params.resource].filter(key => body[key] !== undefined).map(key => [key, body[key]]));
+  for (const key of ['isActive', 'isFeatured', 'isPublished']) {
+    if (payload[key] !== undefined && typeof payload[key] !== 'boolean') throw new ApiError(400, `${key} must be true or false.`);
+  }
+  if (payload.service !== undefined && (!mongoose.isObjectIdOrHexString(payload.service) || !await Service.exists({ _id: payload.service }))) {
+    throw new ApiError(400, 'Choose an existing service.');
+  }
+  if (payload.lawyers !== undefined) {
+    if (!Array.isArray(payload.lawyers) || payload.lawyers.some(id => !mongoose.isObjectIdOrHexString(id))) throw new ApiError(400, 'Choose valid lawyer profiles.');
+    payload.lawyers = [...new Set(payload.lawyers)];
+    if (await Lawyer.countDocuments({ _id: { $in: payload.lawyers } }) !== payload.lawyers.length) throw new ApiError(400, 'Choose existing lawyer profiles.');
+  }
+  return payload;
+}
+
 export const createResource = asyncHandler(async (req, res) => {
   const resource = resourceFor(req.params.resource);
-  const payload = { ...req.body };
-  if (req.params.resource === 'blog' && !payload.author) payload.author = req.user._id;
-  const item = await resource.model.create(payload);
+  const item = await resource.model.create(await contentPayload(req));
+  await item.populate(resource.populate);
   res.status(201).json({ success: true, item });
 });
 
 export const updateResource = asyncHandler(async (req, res) => {
   const resource = resourceFor(req.params.resource);
-  const payload = { ...req.body };
-  if (['case-studies', 'blog'].includes(req.params.resource) && payload.isPublished && !payload.publishedAt) {
-    payload.publishedAt = new Date();
-  }
-  const item = await resource.model.findByIdAndUpdate(req.params.id, payload, { new: true, runValidators: true }).populate(resource.populate);
+  const item = await resource.model.findById(req.params.id);
   if (!item) throw new ApiError(404, 'Record not found.');
+  Object.assign(item, await contentPayload(req));
+  await item.save();
+  await item.populate(resource.populate);
   res.json({ success: true, item });
 });
 
 export const deleteResource = asyncHandler(async (req, res) => {
   const resource = resourceFor(req.params.resource);
-  const item = await resource.model.findByIdAndUpdate(req.params.id, resource.softDelete, { new: true });
+  const item = await resource.model.findById(req.params.id);
   if (!item) throw new ApiError(404, 'Record not found.');
+  Object.assign(item, resource.softDelete);
+  await item.save();
   res.json({ success: true, message: 'Record archived.', item });
 });
 
@@ -103,7 +126,7 @@ export const updateLawyer = asyncHandler(async (req, res) => {
   if (!mongoose.isObjectIdOrHexString(req.params.id)) throw new ApiError(400, 'Invalid lawyer ID.');
   const lawyer = await Lawyer.findById(req.params.id);
   if (!lawyer) throw new ApiError(404, 'Lawyer not found.');
-  Object.assign(lawyer, await profileUpdates(req.body, true));
+  Object.assign(lawyer, await profileUpdates(req.body, true, lawyer.services));
   await lawyer.save();
   await lawyer.populate([{ path: 'user', select: 'name email phone isActive' }, { path: 'services', select: 'title' }]);
   res.json({ success: true, item: lawyer });
@@ -180,15 +203,33 @@ export const archiveConsultation = asyncHandler(async (req, res) => {
 });
 
 export const listUsers = asyncHandler(async (_req, res) => {
-  const items = await User.find().sort('-createdAt');
+  const items = await User.find().select('name email phone role isActive createdAt').sort('-createdAt');
   res.json({ success: true, items });
 });
 
 export const updateUser = asyncHandler(async (req, res) => {
-  const updates = {};
-  for (const key of ['name', 'phone', 'role', 'isActive']) if (req.body[key] !== undefined) updates[key] = req.body[key];
-  const item = await User.findByIdAndUpdate(req.params.id, updates, { new: true, runValidators: true });
-  if (!item) throw new ApiError(404, 'User not found.');
+  if (!mongoose.isObjectIdOrHexString(req.params.id)) throw new ApiError(400, 'Invalid user ID.');
+  if (typeof req.body?.isActive !== 'boolean') throw new ApiError(400, 'Activation must be true or false.');
+  // Administrators are managed by a trusted maintainer, preventing accidental lockout.
+  const item = await User.findOneAndUpdate({ _id: req.params.id, role: { $ne: 'admin' } }, { $set: { isActive: req.body.isActive } }, { new: true, runValidators: true })
+    .select('name email phone role isActive createdAt');
+  if (!item) {
+    if (await User.exists({ _id: req.params.id })) throw new ApiError(400, 'Administrator accounts cannot be deactivated here.');
+    throw new ApiError(404, 'User not found.');
+  }
+  res.json({ success: true, item });
+});
+
+export const listMessages = asyncHandler(async (_req, res) => {
+  const items = await ContactMessage.find().sort('-createdAt');
+  res.json({ success: true, items });
+});
+
+export const updateMessage = asyncHandler(async (req, res) => {
+  if (!mongoose.isObjectIdOrHexString(req.params.id)) throw new ApiError(400, 'Invalid message ID.');
+  if (!ContactMessage.schema.path('status').enumValues.includes(req.body?.status)) throw new ApiError(400, 'Choose a valid message status.');
+  const item = await ContactMessage.findByIdAndUpdate(req.params.id, { $set: { status: req.body.status } }, { new: true, runValidators: true });
+  if (!item) throw new ApiError(404, 'Message not found.');
   res.json({ success: true, item });
 });
 

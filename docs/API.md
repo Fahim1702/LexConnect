@@ -40,7 +40,7 @@ There are no custom `/auth/login` or `/auth/register` password endpoints. The ba
 - GET /services/:id: `{ success, item }`.
 - POST /services: required `title`, `category`, `description`; returns 201 and `item`.
 - PUT /services/:id: editable `title`, `category`, `description`, `isActive`; returns updated `item`.
-- DELETE /services/:id: permanently removes that service; returns `{ success, message }`.
+- DELETE /services/:id: archives that service (`isActive: false`) while preserving references; returns `{ success, message }`.
 
 ## Consultations
 
@@ -76,16 +76,12 @@ Allowed statuses: `pending`, `assigned`, `in-review`, `scheduled`, `resolved`, `
 
 Malformed IDs or invalid data return 400; missing records return 404. Unknown routes and malformed JSON also return JSON errors.
 
-## Pending integration
-
-Lawyer routes, admin content/user management, lawyer profile provisioning and testimonial routes are not mounted yet.
-
 ## Admin overview and consultation assignment
 
 All routes below require an active administrator verified through Firebase.
 
 - GET /admin/overview: `{ success, stats, recent }` for the admin landing page.
-- GET /admin/lawyers: `{ success, items }` containing eligible active lawyer profiles with active Firebase-linked lawyer accounts.
+- GET /admin/lawyers: all lawyer profiles; `?eligible=true` restricts results to active profiles with active Firebase-linked lawyer accounts.
 - GET /admin/consultations: `{ success, items }`; optional `status` filter. Includes client, service, preferred-lawyer and assigned-lawyer details.
 - PATCH /admin/consultations/:id: accepts only `assignedLawyer`, `status` and `adminNote`.
 - DELETE /admin/consultations/:id: marks the request `cancelled` and preserves the record and its history.
@@ -99,3 +95,38 @@ Assignment example:
 Assigning a pending request changes its status to `assigned` unless an explicit status is supplied. Empty string or null unassigns it; an `assigned` request then returns to `pending` unless another status is supplied. `assigned` requires a lawyer. Invalid, inactive, non-lawyer and unmigrated accounts are rejected. Admin notes are limited to 3000 characters.
 
 Status/assignment changes record the acting user's ID and time. Clients see the assigned lawyer's name but not admin notes or internal history. Concurrent edits to the same request return 409 rather than overwriting a newer change. The earlier PUT /consultations/:id status endpoint uses the same validation and history handling.
+
+## Lawyer accounts and self-service
+
+Admin-only: GET /admin/lawyer-candidates lists unlinked active Firebase accounts by name/email; POST /admin/lawyers links a selected `user` ID and professional profile, preserving its identity and granting the lawyer role. PATCH /admin/lawyers/:id edits professional fields; DELETE archives the profile. Editing `isActive` restores it. Identity fields are not editable here.
+
+Active lawyer role and active profile required:
+
+- GET/PATCH /lawyer/profile: own professional profile only.
+- GET /lawyer/consultations: assigned requests only; omits admin notes and internal history.
+- PATCH /lawyer/consultations/:id: `status` (in-review, scheduled, resolved), optional `lawyerNote` (up to 3000 characters). Closed requests cannot be reopened by lawyers.
+- GET/POST /lawyer/blog: list own posts or submit a draft using title, excerpt, content, category and optional coverUrl. Author comes from authentication; publication requires admin review.
+
+## Admin content and operations
+
+All endpoints require the active admin role.
+
+| Path | Methods | Behavior |
+|---|---|---|
+| /admin/content/services | GET, POST | List/create services |
+| /admin/content/case-studies | GET, POST | List/create case studies; references must exist |
+| /admin/content/faqs | GET, POST | List/create FAQs |
+| /admin/content/blog | GET, POST | List posts or create an admin-authored post |
+| /admin/content/:resource/:id | PATCH, DELETE | Edit or archive; blog/case studies use isPublished, services/FAQs use isActive |
+| /admin/users | GET | Names, contact fields, roles, creation dates and activation state |
+| /admin/users/:id | PATCH | Boolean isActive only; administrator accounts cannot be disabled here |
+| /admin/messages | GET | Contact inbox |
+| /admin/messages/:id | PATCH | status: new, read, replied, archived; sends no email |
+| /admin/testimonials | GET | All submitted reviews with client and consultation details |
+| /admin/testimonials/:id | PATCH | Boolean isApproved; approval records admin and date, hiding clears them |
+
+POST returns 201 and `item`; lists return `items`; edits return `item`. Editable content fields match the forms in `client/src/pages/admin/adminConfigs.js`. IDs, authors and publication timestamps cannot be overwritten through these forms. Publishing blog/case-study documents runs model hooks; concurrent document saves return 409 instead of silently overwriting a newer save.
+
+## Client testimonials
+
+GET /client/testimonials lists the client's reviews. POST accepts consultation ID, integer rating 1?5 and a nonblank comment up to 1200 characters. The consultation must belong to the client and be resolved. One review per consultation; duplicates return 409. Approval and ownership fields supplied by the client are ignored. Only approved reviews appear in /public/home, with name, rating, comment and approval date.

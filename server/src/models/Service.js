@@ -26,7 +26,7 @@ const serviceSchema = new mongoose.Schema({  // defines the structure of a legal
         type: Boolean,
         default: true
     }
-});
+}, { timestamps: true, optimisticConcurrency: true });
 
 const Service = mongoose.model('Service', serviceSchema);
 

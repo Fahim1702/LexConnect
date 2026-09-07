@@ -1,6 +1,6 @@
 # LexConnect BD
 
-A React, Express and MongoDB course project, currently being rebuilt in small, explainable checkpoints on `backend-auth`.
+A React, Express and MongoDB course project with Firebase Authentication. The MVP implementation is on `backend-auth`.
 
 ## Current working scope
 
@@ -14,7 +14,8 @@ A React, Express and MongoDB course project, currently being rebuilt in small, e
 - Lawyer profile editing and assigned consultation updates with private notes.
 - Lawyer blog drafts and admin editing, publishing and hiding of posts.
 - Client testimonials for resolved consultations, with admin approval before public display.
-- Other admin content/user management and service-deletion integrity remain separate checkpoints. Their older files are not all connected yet.
+- Admin service, case-study and FAQ management, account activation controls and contact inbox.
+- Archiving preserves service references and existing consultation records.
 
 The running backend is `server/src/server.js`. It mounts the existing public routes and retains the CRUD routes built during the lab. `server/src/app.js` is the older full-app assembly and is not the current entry point.
 
@@ -70,8 +71,10 @@ npm run test:integration
 | Browser shows Network Error | Confirm the API health URL responds and `CLIENT_URL` exactly matches the browser origin. |
 | No services | Run the optional starter seed against your own development database. |
 | Sign-in is unavailable | Complete the Firebase setup guide and restart both processes. |
-| Some dashboard sections return 404 | Admin overview/consultations and client requests/profile are connected. Lawyer dashboard, admin content/users and testimonials remain pending. |
+| Dashboard sections return 404 | Pull the latest project branch and restart the API using the root `npm run dev` command. The active entry point is `server/src/server.js`. |
 | Teammates still get missing public routes | Confirm they have the integration commit from `backend-auth`; installing dependencies alone does not update their branch. |
+
+See [MVP handoff and demo checks](docs/MVP_HANDOFF.md) for feature coverage and the remaining real-account/browser checks.
 
 ## Team workflow
 

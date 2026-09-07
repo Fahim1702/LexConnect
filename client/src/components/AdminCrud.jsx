@@ -45,8 +45,8 @@ export default function AdminCrud({ config }) {
   const [items, setItems] = useState(null); const [lookups, setLookups] = useState({}); const [editing, setEditing] = useState(undefined); const [query, setQuery] = useState(''); const [error, setError] = useState('');
   useEffect(() => {
     setItems(null); setError('');
-    Promise.all([api.get(config.endpoint), api.get('/public/services', { params: { limit: 50 } }), api.get('/admin/lawyers', { params: { eligible: true } }), config.fields.some(field => field.lookup === 'users') ? api.get('/admin/lawyer-candidates') : Promise.resolve({ data: { items: [] } })])
-      .then(([records, services, lawyers, users]) => { setItems(records.data.items); setLookups({ users: users.data.items.map(item => ({ value: item._id, label: `${item.name} (${item.email})` })), services: services.data.items.map((item) => ({ value: item._id, label: item.title })), lawyers: lawyers.data.items.map((item) => ({ value: item._id, label: item.user?.name || item.designation })) }); })
+    Promise.all([api.get(config.endpoint), api.get('/admin/content/services'), api.get('/admin/lawyers'), config.fields.some(field => field.lookup === 'users') ? api.get('/admin/lawyer-candidates') : Promise.resolve({ data: { items: [] } })])
+      .then(([records, services, lawyers, users]) => { setItems(records.data.items); setLookups({ users: users.data.items.map(item => ({ value: item._id, label: `${item.name} (${item.email})` })), services: services.data.items.filter(item => config.singular !== 'lawyer' || item.isActive).map((item) => ({ value: item._id, label: item.title })), lawyers: lawyers.data.items.map((item) => ({ value: item._id, label: item.user?.name || item.designation })) }); })
       .catch((err) => setError(err.message));
   }, [config]);
   const visible = useMemo(() => (items || []).filter((item) => JSON.stringify(item).toLowerCase().includes(query.toLowerCase())), [items, query]);

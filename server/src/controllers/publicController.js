@@ -19,13 +19,19 @@ const pageOptions = (req) => {
 const identifierQuery = (value) =>
   mongoose.isValidObjectId(value) ? { $or: [{ _id: value }, { slug: value }] } : { slug: value };
 
+async function visibleLawyers() {
+  const users = await User.find({ isActive: true, role: 'lawyer', firebaseUid: { $type: 'string', $ne: '' } }).distinct('_id');
+  return { isActive: true, user: { $in: users } };
+}
+
 export const getHome = asyncHandler(async (_req, res) => {
+  const lawyerFilter = await visibleLawyers();
   const [services, lawyers, caseStudies, testimonials, lawyerCount, caseCount] = await Promise.all([
     Service.find({ isActive: true }).sort('-isFeatured title').limit(6),
-    Lawyer.find({ isActive: true, isFeatured: true }).populate('user', 'name').populate('services', 'title slug').limit(4),
+    Lawyer.find({ ...lawyerFilter, isFeatured: true }).populate('user', 'name').populate('services', 'title slug').limit(4),
     CaseStudy.find({ isPublished: true, isFeatured: true }).populate('service', 'title slug').limit(3),
     Testimonial.find({ isApproved: true }).select('client rating comment approvedAt').populate('client', 'name').sort('-approvedAt').limit(4),
-    Lawyer.countDocuments({ isActive: true }),
+    Lawyer.countDocuments(lawyerFilter),
     CaseStudy.countDocuments({ isPublished: true })
   ]);
   res.json({ success: true, data: { services, lawyers, caseStudies, testimonials, stats: { lawyerCount, caseCount } } });
@@ -50,7 +56,7 @@ export const getService = asyncHandler(async (req, res) => {
   const service = await Service.findOne({ ...identifierQuery(req.params.identifier), isActive: true });
   if (!service) throw new ApiError(404, 'Service not found.');
   const [lawyers, caseStudies] = await Promise.all([
-    Lawyer.find({ services: service._id, isActive: true }).populate('user', 'name').populate('services', 'title slug'),
+    Lawyer.find({ ...await visibleLawyers(), services: service._id }).populate('user', 'name').populate('services', 'title slug'),
     CaseStudy.find({ service: service._id, isPublished: true }).populate('lawyers', 'slug designation')
   ]);
   res.json({ success: true, service, lawyers, caseStudies });
@@ -58,7 +64,7 @@ export const getService = asyncHandler(async (req, res) => {
 
 export const listLawyers = asyncHandler(async (req, res) => {
   const { page, limit, skip } = pageOptions(req);
-  const filter = { isActive: true };
+  const filter = await visibleLawyers();
   if (req.query.service) filter.services = req.query.service;
   if (req.query.minExperience) filter.experienceYears = { $gte: Number(req.query.minExperience) || 0 };
   if (req.query.q) {
@@ -74,7 +80,7 @@ export const listLawyers = asyncHandler(async (req, res) => {
 });
 
 export const getLawyer = asyncHandler(async (req, res) => {
-  const lawyer = await Lawyer.findOne({ ...identifierQuery(req.params.identifier), isActive: true })
+  const lawyer = await Lawyer.findOne({ ...identifierQuery(req.params.identifier), ...await visibleLawyers() })
     .populate('user', 'name email phone')
     .populate('services', 'title slug summary');
   if (!lawyer) throw new ApiError(404, 'Lawyer not found.');

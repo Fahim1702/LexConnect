@@ -8,7 +8,7 @@ const faqSchema = new mongoose.Schema(
     sortOrder: { type: Number, default: 0 },
     isActive: { type: Boolean, default: true }
   },
-  { timestamps: true }
+  { timestamps: true, optimisticConcurrency: true }
 );
 
 export default mongoose.model('FAQ', faqSchema);

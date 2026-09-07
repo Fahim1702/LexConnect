@@ -110,7 +110,7 @@ app.put('/api/services/:id', protect, authorize('admin'), async (req, res) => {
         const { title, category, description, isActive } = req.body || {};
         const service = await Service.findByIdAndUpdate(
             req.params.id,
-            { $set: { title, category, description, isActive } },
+            { $set: { title, category, description, isActive }, $inc: { __v: 1 } },
             { new: true, runValidators: true }
         );
 
@@ -149,8 +149,8 @@ app.delete('/api/services/:id', protect, authorize('admin'), async (req, res) =>
     }
 
     try {
-        // Delete the service whose _id matches the URL parameter.
-        const service = await Service.findByIdAndDelete(req.params.id);
+        // Archive the service so existing consultation and case-study references remain valid.
+        const service = await Service.findByIdAndUpdate(req.params.id, { $set: { isActive: false }, $inc: { __v: 1 } }, { new: true });
 
         if (!service) {
             return res.status(404).json({
@@ -161,7 +161,7 @@ app.delete('/api/services/:id', protect, authorize('admin'), async (req, res) =>
 
         res.json({
             success: true,
-            message: 'Service deleted successfully'
+            message: 'Service archived successfully'
         });
     } catch (error) {
         res.status(500).json({
@@ -206,8 +206,8 @@ app.post('/api/consultations', optionalAuth, async (req, res) => {
             if (!mongoose.isObjectIdOrHexString(preferredLawyer)) {
                 return res.status(400).json({ success: false, message: 'Invalid preferred lawyer ID' });
             }
-            const lawyer = await Lawyer.findOne({ _id: preferredLawyer, isActive: true });
-            if (!lawyer) {
+            const lawyer = await Lawyer.findOne({ _id: preferredLawyer, isActive: true }).populate('user', 'isActive role firebaseUid');
+            if (!lawyer?.user?.isActive || lawyer.user.role !== 'lawyer' || !lawyer.user.firebaseUid) {
                 return res.status(400).json({ success: false, message: 'The preferred lawyer is not available' });
             }
         }

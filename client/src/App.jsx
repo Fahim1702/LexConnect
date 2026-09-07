@@ -11,7 +11,7 @@ import ConsultationPage from './pages/public/ConsultationPage.jsx';
 import { LoginPage, RegisterPage } from './pages/public/AuthPages.jsx';
 import AdminDashboardPage from './pages/admin/AdminDashboardPage.jsx';
 import AdminEntityPage from './pages/admin/AdminEntityPage.jsx';
-import { AdminConsultationsPage, AdminTestimonialsPage, AdminUsersPage } from './pages/admin/AdminWorkflowPages.jsx';
+import { AdminMessagesPage, AdminConsultationsPage, AdminTestimonialsPage, AdminUsersPage } from './pages/admin/AdminWorkflowPages.jsx';
 import { ClientDashboardPage, ClientProfilePage, ClientTestimonialsPage } from './pages/client/ClientPages.jsx';
 import { LawyerBlogPage, LawyerDashboardPage, LawyerProfilePage } from './pages/lawyer/LawyerPages.jsx';
 
@@ -51,6 +51,7 @@ export default function App() {
       <Route path="faqs" element={<AdminEntityPage resource="faqs" />} />
       <Route path="consultations" element={<AdminConsultationsPage />} />
       <Route path="users" element={<AdminUsersPage />} />
+      <Route path="messages" element={<AdminMessagesPage />} />
       <Route path="testimonials" element={<AdminTestimonialsPage />} />
     </Route>
     <Route path="client" element={<RoleArea role="client" />}>

@@ -10,7 +10,7 @@ export const getMyLawyerProfile = asyncHandler(async (req, res) => {
 
 export const updateMyLawyerProfile = asyncHandler(async (req, res) => {
   const profile = await activeLawyer(req.user._id);
-  Object.assign(profile, await profileUpdates(req.body));
+  Object.assign(profile, await profileUpdates(req.body, false, profile.services));
   await profile.save();
   await profile.populate([{ path: 'user', select: 'name email phone' }, { path: 'services', select: 'title slug' }]);
   res.json({ success: true, profile });

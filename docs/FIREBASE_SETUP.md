@@ -74,7 +74,7 @@ Old MongoDB accounts without `firebaseUid` are not automatically linked by email
 - Admin protection for service CRUD and consultation management.
 - Signed-in client ownership, viewing requests, pending cancellation and profile editing.
 
-Admin overview, lawyer provisioning, assignment and consultation cancellation are also connected. Lawyers can edit their professional profiles and update assigned requests. Lawyer blog drafts and admin publishing are connected. Client testimonials and admin approval are also connected. Other admin content/user management and service-deletion integrity remain later tasks.
+Admin overview, lawyer provisioning, assignment and consultation cancellation are also connected. Lawyers can edit their professional profiles and update assigned requests. Lawyer blog drafts and admin publishing are connected. Client testimonials and admin approval are also connected. Admin service/case-study/FAQ management, account activation and the contact inbox are connected. Services are archived rather than permanently deleted, preserving existing references.
 
 ## Add a lawyer and test the workflow
 
@@ -101,6 +101,14 @@ Admins can review and edit drafts at `/admin/blog`, then tick **Published** to m
 After a consultation is resolved, its client can leave one review at `/client/testimonials`. Choose the consultation, a rating from 1 to 5, and a comment of up to 1200 characters. Submitted reviews stay private until an admin approves them at `/admin/testimonials`.
 
 Approved reviews appear on the homepage with the client's name, rating and comment. They do not expose email addresses or consultation references. **Hide** removes a review from the homepage while retaining the submission. Check the flow with two client accounts to confirm that each account only sees its own submissions and cannot review another client's consultation.
+
+## Remaining admin screens
+
+Use `/admin/services`, `/admin/case-studies` and `/admin/faqs` to create and edit public content. Tick **Published** for case studies. **Archive** hides records while preserving references; edit and reactivate/republish to restore them. Services use a free-text category field.
+
+At `/admin/users`, admins can activate/deactivate client and lawyer accounts. Deactivated accounts cannot synchronize a login or access protected APIs. Their lawyer profiles are hidden from public discovery and new consultation selections. Existing work is retained for reassignment. Administrator accounts cannot be disabled through this page, preventing lockout.
+
+At `/admin/messages`, review contact submissions and mark them new, read, replied or archived. Status changes do not send email; reply through the team's usual communication channel if needed.
 
 ## Automated checks and limits
 

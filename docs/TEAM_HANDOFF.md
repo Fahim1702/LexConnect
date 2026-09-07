@@ -29,9 +29,9 @@ Public page APIs, contact and guest consultation submission are mounted by `serv
 
 The public pages can load an empty database. Add public records when needed; the starter seed only adds services and a FAQ.
 
-## Still pending
+## Integration status
 
-Follow [Firebase setup](FIREBASE_SETUP.md) before testing login. The admin overview and consultation assignment page now work with active Firebase-linked lawyer accounts. Lawyer dashboard, admin content/user management and testimonials remain separate coding checkpoints. The older controllers and `server/src/app.js` are not automatically active. Old password-based demo accounts must be migrated explicitly; the API never links them to Firebase by email alone.
+Follow [Firebase setup](FIREBASE_SETUP.md) before testing login. The admin overview and consultation assignment page now work with active Firebase-linked lawyer accounts. Lawyer dashboard, admin content/user management, contact inbox, blog publishing and testimonials are connected. Service removal archives records to preserve relationships. See [MVP handoff](MVP_HANDOFF.md) for final demo checks. The older controllers and `server/src/app.js` are not automatically active. Old password-based demo accounts must be migrated explicitly; the API never links them to Firebase by email alone.
 
 ## Before sharing a checkpoint
 
