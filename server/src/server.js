@@ -217,6 +217,107 @@ app.post('/api/consultations', async (req, res) => {
     }
 });
 
+app.get('/api/consultations', async (req, res) => {
+    try {
+        // Show the newest requests first, with the selected service's details.
+        const requests = await ConsultationRequest.find()
+            .populate('service', 'title category')
+            .sort({ createdAt: -1, _id: -1 });
+
+        res.json({
+            success: true,
+            items: requests
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch consultation requests'
+        });
+    }
+});
+
+app.get('/api/consultations/:id', async (req, res) => {
+    if (!mongoose.isObjectIdOrHexString(req.params.id)) {
+        return res.status(400).json({
+            success: false,
+            message: 'Invalid consultation ID'
+        });
+    }
+
+    try {
+        const request = await ConsultationRequest.findById(req.params.id)
+            .populate('service', 'title category');
+
+        if (!request) {
+            return res.status(404).json({
+                success: false,
+                message: 'Consultation request not found'
+            });
+        }
+
+        res.json({
+            success: true,
+            item: request
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch consultation request'
+        });
+    }
+});
+
+app.put('/api/consultations/:id', async (req, res) => {
+    if (!mongoose.isObjectIdOrHexString(req.params.id)) {
+        return res.status(400).json({
+            success: false,
+            message: 'Invalid consultation ID'
+        });
+    }
+
+    const { status } = req.body || {};
+
+    if (typeof status !== 'string' || !status.trim()) {
+        return res.status(400).json({
+            success: false,
+            message: 'Status is required and must be a non-empty string'
+        });
+    }
+
+    try {
+        // Only status can change here; the schema checks its allowed values.
+        const request = await ConsultationRequest.findByIdAndUpdate(
+            req.params.id,
+            { $set: { status } },
+            { new: true, runValidators: true }
+        ).populate('service', 'title category');
+
+        if (!request) {
+            return res.status(404).json({
+                success: false,
+                message: 'Consultation request not found'
+            });
+        }
+
+        res.json({
+            success: true,
+            item: request
+        });
+    } catch (error) {
+        if (error.name === 'ValidationError' || error.name === 'CastError') {
+            return res.status(400).json({
+                success: false,
+                message: error.message
+            });
+        }
+
+        res.status(500).json({
+            success: false,
+            message: 'Failed to update consultation request'
+        });
+    }
+});
+
 app.get('/', (req, res) => {
     res.send('LexConnect backend is running');
 });
