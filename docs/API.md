@@ -105,7 +105,9 @@ Active lawyer role and active profile required:
 - GET/PATCH /lawyer/profile: own professional profile only.
 - GET /lawyer/consultations: assigned requests only; omits admin notes and internal history.
 - PATCH /lawyer/consultations/:id: `status` (in-review, scheduled, resolved), optional `lawyerNote` (up to 3000 characters). Closed requests cannot be reopened by lawyers.
-- GET/POST /lawyer/blog: list own posts or submit a draft using title, excerpt, content, category and optional coverUrl. Author comes from authentication; publication requires admin review.
+- GET/POST /lawyer/blog: list own posts or submit a draft using title, excerpt, content, category and optional coverUrl. Author comes from authentication; new posts start as drafts.
+- PATCH /lawyer/blog/:id: edit or publish an owned post using content fields and boolean isPublished. Author and featured state cannot be changed.
+- DELETE /lawyer/blog/:id: hide an owned post; preserves the record.
 
 ## Admin content and operations
 
@@ -130,3 +132,11 @@ POST returns 201 and `item`; lists return `items`; edits return `item`. Editable
 ## Client testimonials
 
 GET /client/testimonials lists the client's reviews. POST accepts consultation ID, integer rating 1?5 and a nonblank comment up to 1200 characters. The consultation must belong to the client and be resolved. One review per consultation; duplicates return 409. Approval and ownership fields supplied by the client are ignored. Only approved reviews appear in /public/home, with name, rating, comment and approval date.
+
+## Public filters and selection lists
+
+GET /public/services includes `categories` for the category filter alongside `items` and `pagination`. Services, lawyers and blog pages have Previous/Next controls; changing directory filters resets the page. GET /public/case-studies accepts `service`. FAQs are grouped by category in the browser.
+
+GET /public/service-options returns all active service IDs, titles and categories. GET /public/lawyer-options returns all available lawyer IDs, designations and names. These compact selection lists avoid truncating consultation form choices at 50 records.
+
+Lawyer photoUrl accepts an image URL or a site-relative path. Public cards and profile pages display it, falling back to initials if the image fails.

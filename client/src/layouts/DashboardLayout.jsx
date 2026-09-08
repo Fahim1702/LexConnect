@@ -9,7 +9,7 @@ const menus = {
     ['Consultations', '/admin/consultations', MessageSquare], ['Messages', '/admin/messages', MessageSquare], ['Users', '/admin/users', UserRound], ['Testimonials', '/admin/testimonials', Star]
   ],
   client: [['My Requests', '/client', MessageSquare], ['Profile', '/client/profile', UserRound], ['Testimonials', '/client/testimonials', Star]],
-  lawyer: [['Assigned Requests', '/lawyer', MessageSquare], ['My Profile', '/lawyer/profile', UserRound], ['My Blog Drafts', '/lawyer/blog', FileText]]
+  lawyer: [['Assigned Requests', '/lawyer', MessageSquare], ['My Profile', '/lawyer/profile', UserRound], ['My Blog Posts', '/lawyer/blog', FileText]]
 };
 
 export default function DashboardLayout() {

@@ -1,16 +1,19 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 
+import LawyerAvatar from '../../components/LawyerAvatar.jsx';
+import Pagination from '../../components/Pagination.jsx';
 import usePublicData from '../../hooks/usePublicData.js';
 import { ErrorAlert, Loading, EmptyState, formatDate } from '../../components/Ui.jsx';
 
 export function LawyersPage() {
   const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
   const [specialization, setSpecialization] = useState('');
 
   const [minExperience, setMinExperience] = useState('');
-  const { data, error, loading } = usePublicData(`/public/lawyers?limit=50&q=${encodeURIComponent(search)}&service=${encodeURIComponent(specialization)}&minExperience=${encodeURIComponent(minExperience || '0')}`);
-  const serviceOptions = usePublicData('/public/services?limit=50');
+  const { data, error, loading } = usePublicData(`/public/lawyers?limit=12&page=${page}&q=${encodeURIComponent(search)}&service=${encodeURIComponent(specialization)}&minExperience=${encodeURIComponent(minExperience || '0')}`);
+  const serviceOptions = usePublicData('/public/service-options');
   const filteredLawyers = data?.items || [];
 
   return (
@@ -31,13 +34,13 @@ export function LawyersPage() {
             type="text"
             placeholder="Search lawyer by name..."
             value={search}
-            onChange={(event) => setSearch(event.target.value)}
+            onChange={(event) => { setSearch(event.target.value); setPage(1); }}
             className="rounded border px-4 py-3"
           />
 
           <select
             value={specialization}
-            onChange={(event) => setSpecialization(event.target.value)}
+            onChange={(event) => { setSpecialization(event.target.value); setPage(1); }}
             className="rounded border px-4 py-3"
           >
             <option value="">
@@ -50,7 +53,7 @@ export function LawyersPage() {
 
         </div>
 
-        <label className="mt-4 block"><span className="block font-semibold">Minimum years of experience</span><input type="number" min="0" className="mt-2 rounded border px-4 py-3" value={minExperience} onChange={event => setMinExperience(event.target.value)} /></label>
+        <label className="mt-4 block"><span className="block font-semibold">Minimum years of experience</span><input type="number" min="0" className="mt-2 rounded border px-4 py-3" value={minExperience} onChange={event => { setMinExperience(event.target.value); setPage(1); }} /></label>
         <ErrorAlert message={error || serviceOptions.error} />
         {loading && <Loading />}
         <div className="mt-10 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -61,9 +64,7 @@ export function LawyersPage() {
               className="rounded-lg border bg-white p-6 shadow-sm"
             >
 
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-blue-700 text-xl font-bold text-white">
-                {lawyer.user?.name?.charAt(0)}
-              </div>
+              <LawyerAvatar lawyer={lawyer} className="h-16 w-16" />
 
               <h2 className="mt-4 text-xl font-bold">
                 {lawyer.user?.name}
@@ -93,6 +94,7 @@ export function LawyersPage() {
 
         </div>
 
+        <Pagination pagination={data?.pagination} page={page} onChange={setPage} loading={loading} />
         {!loading && !error && filteredLawyers.length === 0 && (
           <p className="mt-8 text-gray-500">
             No lawyers found.
@@ -137,9 +139,7 @@ export function LawyerDetailPage() {
 
         <aside className="rounded-lg border bg-white p-6 shadow-sm">
 
-          <div className="flex h-24 w-24 items-center justify-center rounded-full bg-blue-700 text-3xl font-bold text-white">
-            {lawyer.user?.name?.charAt(0)}
-          </div>
+          <LawyerAvatar lawyer={lawyer} className="h-24 w-24" />
 
           <h1 className="mt-5 text-3xl font-bold">
             {lawyer.user?.name}

@@ -45,11 +45,12 @@ export const listServices = asyncHandler(async (req, res) => {
     const regex = new RegExp(escapeRegex(req.query.q), 'i');
     filter.$or = [{ title: regex }, { summary: regex }, { description: regex }];
   }
-  const [items, total] = await Promise.all([
+  const [items, total, categories] = await Promise.all([
     Service.find(filter).sort('-isFeatured title').skip(skip).limit(limit),
-    Service.countDocuments(filter)
+    Service.countDocuments(filter),
+    Service.distinct('category', { isActive: true })
   ]);
-  res.json({ success: true, items, pagination: { page, limit, total, pages: Math.ceil(total / limit) } });
+  res.json({ success: true, items, categories: categories.sort(), pagination: { page, limit, total, pages: Math.ceil(total / limit) } });
 });
 
 export const getService = asyncHandler(async (req, res) => {
@@ -134,4 +135,9 @@ export const createContactMessage = asyncHandler(async (req, res) => {
   if (!name || !email || !subject || !message) throw new ApiError(400, 'Name, email, subject, and message are required.');
   const item = await ContactMessage.create({ name, email, phone, subject, message });
   res.status(201).json({ success: true, message: 'Your message has been received.', id: item._id });
+});
+
+export const listLawyerOptions = asyncHandler(async (_req, res) => {
+  const items = await Lawyer.find(await visibleLawyers()).select('user designation').populate('user', 'name').sort('designation');
+  res.json({ success: true, items });
 });

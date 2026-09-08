@@ -11,6 +11,7 @@
     "build": "npm run build -w client",
     "start": "npm run start -w server",
     "seed": "npm run seed -w server",
+    "seed:demo": "node server/src/seeds/demo.js",
     "check": "npm run verify:source && npm run test:setup && npm run check -w server && npm run build -w client",
     "verify:source": "node scripts/verify-source.mjs"
   },
