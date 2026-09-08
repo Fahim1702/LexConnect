@@ -57,7 +57,7 @@ If you change the API port, update `VITE_API_URL` in `client/.env` to the same p
 npm run seed:demo
 ```
 
-Adds 3 fictional lawyers and 3 clients with sample consultations, articles, case studies, FAQs and a review. Names and content are labeled Demo, emails use `.example.test`, and avatars are local illustrations. Reruns preserve existing records and edits. This command writes to your configured development database and refuses production mode.
+Adds 3 fictional lawyers and 3 clients with sample consultations, articles, case studies, FAQs and a review. The records are fictional; emails use `.example.test`, and avatars are local illustrations. Reruns preserve existing records and edits. This command writes to your configured development database and refuses production mode.
 
 These are MongoDB demonstration profiles, not Firebase login accounts. There are no demo passwords or authentication bypasses. Register real test accounts for role-based sign-in tests. See [demo data](docs/DEMO_DATA.md).
 
