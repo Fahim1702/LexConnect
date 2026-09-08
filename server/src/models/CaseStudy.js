@@ -16,7 +16,7 @@ const caseStudySchema = new mongoose.Schema(
     isPublished: { type: Boolean, default: false },
     publishedAt: Date
   },
-  { timestamps: true }
+  { timestamps: true, optimisticConcurrency: true }
 );
 
 caseStudySchema.pre('validate', function createSlug(next) {

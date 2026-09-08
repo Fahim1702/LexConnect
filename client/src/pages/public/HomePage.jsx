@@ -1,48 +1,13 @@
 import { Link } from 'react-router-dom';
 
-const services = [
-  {
-    id: 1,
-    title: 'Family Law',
-    description:
-      'Get legal guidance for marriage, divorce, child custody and other family matters.'
-  },
-  {
-    id: 2,
-    title: 'Property Law',
-    description:
-      'Find legal assistance for property ownership, land disputes and documentation.'
-  },
-  {
-    id: 3,
-    title: 'Business Law',
-    description:
-      'Get support for contracts, business registration and commercial legal issues.'
-  }
-];
-
-const lawyers = [
-  {
-    id: 1,
-    name: 'Ahsan Rahman',
-    specialization: 'Family Law',
-    experience: 8
-  },
-  {
-    id: 2,
-    name: 'Nadia Islam',
-    specialization: 'Property Law',
-    experience: 6
-  },
-  {
-    id: 3,
-    name: 'Farhan Ahmed',
-    specialization: 'Business Law',
-    experience: 10
-  }
-];
+import usePublicData from '../../hooks/usePublicData.js';
+import { ErrorAlert, Loading, EmptyState, formatDate } from '../../components/Ui.jsx';
 
 export default function HomePage() {
+  const { data: response, error, loading } = usePublicData('/public/home');
+  const data = response?.data;
+  const services = data?.services || [];
+  const lawyers = data?.lawyers || [];
   return (
     <>
       {/* Hero Section */}
@@ -79,6 +44,7 @@ export default function HomePage() {
         </div>
       </section>
 
+      <div className="container-page"><ErrorAlert message={error} />{loading && <Loading />}</div>
       {/* Services Section */}
       <section className="py-16">
         <div className="container-page">
@@ -98,9 +64,10 @@ export default function HomePage() {
 
           <div className="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
 
+            {!loading && !error && !services.length && <EmptyState title="No services yet" />}
             {services.map((service) => (
               <div
-                key={service.id}
+                key={service._id}
                 className="rounded-lg border bg-white p-6 shadow-sm"
               >
                 <h3 className="text-xl font-semibold">
@@ -108,11 +75,11 @@ export default function HomePage() {
                 </h3>
 
                 <p className="mt-3 text-gray-600">
-                  {service.description}
+                  {service.summary || service.description}
                 </p>
 
                 <Link
-                  to="/services"
+                  to={`/services/${service.slug || service._id}`}
                   className="mt-5 inline-block font-semibold text-blue-700"
                 >
                   Learn More
@@ -144,29 +111,30 @@ export default function HomePage() {
 
           <div className="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
 
+            {!loading && !error && !lawyers.length && <EmptyState title="No featured lawyers yet" />}
             {lawyers.map((lawyer) => (
               <div
-                key={lawyer.id}
+                key={lawyer._id}
                 className="rounded-lg bg-white p-6 shadow-sm"
               >
                 <div className="flex h-16 w-16 items-center justify-center rounded-full bg-blue-700 text-xl font-bold text-white">
-                  {lawyer.name.charAt(0)}
+                  {lawyer.user?.name?.charAt(0)}
                 </div>
 
                 <h3 className="mt-4 text-xl font-semibold">
-                  {lawyer.name}
+                  {lawyer.user?.name}
                 </h3>
 
                 <p className="mt-1 text-blue-700">
-                  {lawyer.specialization}
+                  {lawyer.designation}
                 </p>
 
                 <p className="mt-2 text-sm text-gray-600">
-                  {lawyer.experience} years of experience
+                  {lawyer.experienceYears} years of experience
                 </p>
 
                 <Link
-                  to="/lawyers"
+                  to={`/lawyers/${lawyer.slug || lawyer._id}`}
                   className="mt-5 inline-block font-semibold text-blue-700"
                 >
                   View Profile
@@ -179,6 +147,7 @@ export default function HomePage() {
         </div>
       </section>
 
+      {data?.testimonials?.length > 0 && <section className="py-16"><div className="container-page"><h2 className="text-3xl font-bold">Client feedback</h2><div className="mt-8 grid gap-6 md:grid-cols-2">{data.testimonials.map(item => <blockquote key={item._id} className="rounded-lg border bg-white p-6"><p className="font-semibold text-blue-700">{item.rating}/5 stars</p><p className="mt-3">{item.comment}</p><footer className="mt-4 font-semibold">{item.client?.name}</footer></blockquote>)}</div></div></section>}
       {/* How It Works */}
       <section className="py-16">
         <div className="container-page">

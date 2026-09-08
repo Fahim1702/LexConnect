@@ -1,91 +1,14 @@
 import { Link, useParams } from 'react-router-dom';
 
-const caseStudies = [
-  {
-    id: 1,
-    slug: 'family-dispute-resolution',
-    service: 'Family Law',
-    title: 'Resolving a Family Dispute',
-    summary:
-      'A family dispute was handled through legal consultation and negotiation.',
-    challenge:
-      'The client needed guidance regarding a family dispute involving responsibilities and legal rights.',
-    approach:
-      'The lawyer reviewed the situation, explained the available legal options and helped the client proceed through negotiation.',
-    outcome:
-      'The dispute was resolved without requiring a lengthy court process.'
-  },
-  {
-    id: 2,
-    slug: 'property-documentation',
-    service: 'Property Law',
-    title: 'Property Documentation Support',
-    summary:
-      'Legal support was provided to review and organize property documents.',
-    challenge:
-      'The client had incomplete and confusing property documents.',
-    approach:
-      'The lawyer reviewed the available records and identified the documents that needed correction.',
-    outcome:
-      'The client was able to organize the required documentation and proceed with the property matter.'
-  }
-];
-
-const blogPosts = [
-  {
-    id: 1,
-    slug: 'understanding-property-documents',
-    category: 'Property Law',
-    title: 'Understanding Property Documents',
-    author: 'Nadia Islam',
-    date: 'September 1, 2026',
-    excerpt:
-      'A simple introduction to important property documents and why they matter.',
-    content:
-      'Property transactions involve several documents. Before making a major decision, a person should carefully review ownership records, agreements and supporting documents. Legal assistance may help identify missing or inconsistent information.'
-  },
-  {
-    id: 2,
-    slug: 'before-signing-a-contract',
-    category: 'Business Law',
-    title: 'What to Check Before Signing a Contract',
-    author: 'Farhan Ahmed',
-    date: 'August 28, 2026',
-    excerpt:
-      'Important points to review before entering into a legal agreement.',
-    content:
-      'A contract should clearly describe the responsibilities of each party. Important sections can include payment terms, deadlines, termination conditions and dispute resolution procedures.'
-  }
-];
-
-const faqs = [
-  {
-    id: 1,
-    question: 'How do I request a consultation?',
-    answer:
-      'Open the consultation page, complete the required information and submit the request.'
-  },
-  {
-    id: 2,
-    question: 'Can I choose a lawyer?',
-    answer:
-      'Yes. You can browse the lawyer directory and select a lawyer before submitting a consultation request.'
-  },
-  {
-    id: 3,
-    question: 'Can I cancel my consultation request?',
-    answer:
-      'Registered clients can view their consultation requests from the client dashboard and cancel eligible requests.'
-  },
-  {
-    id: 4,
-    question: 'Is the information on LexConnect legal advice?',
-    answer:
-      'No. The website provides general information and helps users connect with legal professionals.'
-  }
-];
+import usePublicData from '../../hooks/usePublicData.js';
+import { ErrorAlert, Loading, EmptyState, formatDate } from '../../components/Ui.jsx';
 
 export function CaseStudiesPage() {
+  const { data, error, loading } = usePublicData('/public/case-studies');
+  const caseStudies = data?.items || [];
+  if (loading) return <Loading />;
+  if (error) return <div className="container-page py-16"><ErrorAlert message={error} /></div>;
+  if (!caseStudies.length) return <div className="container-page py-16"><EmptyState /></div>;
   return (
     <section className="py-16">
       <div className="container-page">
@@ -102,11 +25,11 @@ export function CaseStudiesPage() {
 
           {caseStudies.map((item) => (
             <div
-              key={item.id}
+              key={item._id}
               className="rounded-lg border bg-white p-6 shadow-sm"
             >
               <p className="text-sm font-semibold text-blue-700">
-                {item.service}
+                {item.service?.title}
               </p>
 
               <h2 className="mt-2 text-2xl font-bold">
@@ -136,9 +59,10 @@ export function CaseStudiesPage() {
 export function CaseStudyDetailPage() {
   const { identifier } = useParams();
 
-  const item = caseStudies.find(
-    (caseStudy) => caseStudy.slug === identifier
-  );
+  const { data, error, loading } = usePublicData(`/public/case-studies/${identifier}`);
+  const item = data?.item;
+  if (loading) return <Loading />;
+  if (error) return <div className="container-page py-16"><ErrorAlert message={error} /></div>;
 
   if (!item) {
     return (
@@ -162,7 +86,7 @@ export function CaseStudyDetailPage() {
       <div className="container-page max-w-4xl">
 
         <p className="font-semibold text-blue-700">
-          {item.service}
+          {item.service?.title}
         </p>
 
         <h1 className="mt-2 text-4xl font-bold">
@@ -213,6 +137,11 @@ export function CaseStudyDetailPage() {
 }
 
 export function BlogPage() {
+  const { data, error, loading } = usePublicData('/public/blog?limit=50');
+  const blogPosts = data?.items || [];
+  if (loading) return <Loading />;
+  if (error) return <div className="container-page py-16"><ErrorAlert message={error} /></div>;
+  if (!blogPosts.length) return <div className="container-page py-16"><EmptyState /></div>;
   return (
     <section className="py-16">
       <div className="container-page">
@@ -229,7 +158,7 @@ export function BlogPage() {
 
           {blogPosts.map((post) => (
             <div
-              key={post.id}
+              key={post._id}
               className="rounded-lg border bg-white p-6 shadow-sm"
             >
 
@@ -246,7 +175,7 @@ export function BlogPage() {
               </p>
 
               <p className="mt-4 text-sm text-gray-500">
-                {post.author} · {post.date}
+                {post.author?.name} · {formatDate(post.publishedAt)}
               </p>
 
               <Link
@@ -269,9 +198,10 @@ export function BlogPage() {
 export function BlogDetailPage() {
   const { identifier } = useParams();
 
-  const post = blogPosts.find(
-    (blogPost) => blogPost.slug === identifier
-  );
+  const { data, error, loading } = usePublicData(`/public/blog/${identifier}`);
+  const post = data?.item;
+  if (loading) return <Loading />;
+  if (error) return <div className="container-page py-16"><ErrorAlert message={error} /></div>;
 
   if (!post) {
     return (
@@ -305,7 +235,7 @@ export function BlogDetailPage() {
         </h1>
 
         <p className="mt-4 text-sm text-gray-500">
-          By {post.author} · {post.date}
+          By {post.author?.name} · {formatDate(post.publishedAt)}
         </p>
 
         <p className="mt-8 border-y py-6 text-xl text-gray-600">
@@ -322,6 +252,11 @@ export function BlogDetailPage() {
 }
 
 export function FAQPage() {
+  const { data, error, loading } = usePublicData('/public/faqs');
+  const faqs = data?.items || [];
+  if (loading) return <Loading />;
+  if (error) return <div className="container-page py-16"><ErrorAlert message={error} /></div>;
+  if (!faqs.length) return <div className="container-page py-16"><EmptyState /></div>;
   return (
     <section className="py-16">
       <div className="container-page max-w-4xl">
@@ -338,7 +273,7 @@ export function FAQPage() {
 
           {faqs.map((faq) => (
             <details
-              key={faq.id}
+              key={faq._id}
               className="rounded-lg border bg-white"
             >
               <summary className="cursor-pointer p-5 font-semibold">

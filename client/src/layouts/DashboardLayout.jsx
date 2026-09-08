@@ -6,7 +6,7 @@ const menus = {
   admin: [
     ['Overview', '/admin', Gauge], ['Lawyers', '/admin/lawyers', Users], ['Services', '/admin/services', Scale],
     ['Case Studies', '/admin/case-studies', Briefcase], ['Blog', '/admin/blog', BookOpen], ['FAQ', '/admin/faqs', HelpCircle],
-    ['Consultations', '/admin/consultations', MessageSquare], ['Users', '/admin/users', UserRound], ['Testimonials', '/admin/testimonials', Star]
+    ['Consultations', '/admin/consultations', MessageSquare], ['Messages', '/admin/messages', MessageSquare], ['Users', '/admin/users', UserRound], ['Testimonials', '/admin/testimonials', Star]
   ],
   client: [['My Requests', '/client', MessageSquare], ['Profile', '/client/profile', UserRound], ['Testimonials', '/client/testimonials', Star]],
   lawyer: [['Assigned Requests', '/lawyer', MessageSquare], ['My Profile', '/lawyer/profile', UserRound], ['My Blog Drafts', '/lawyer/blog', FileText]]

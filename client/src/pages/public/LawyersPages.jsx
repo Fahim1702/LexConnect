@@ -1,62 +1,17 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 
-const lawyers = [
-  {
-    id: 1,
-    slug: 'ahsan-rahman',
-    name: 'Ahsan Rahman',
-    designation: 'Advocate',
-    specialization: 'Family Law',
-    experience: 8,
-    location: 'Dhaka',
-    fee: 1500,
-    bio: 'Provides legal assistance in divorce, child custody, maintenance and other family-related matters.',
-    languages: ['Bangla', 'English'],
-    education: ['LL.B', 'LL.M']
-  },
-  {
-    id: 2,
-    slug: 'nadia-islam',
-    name: 'Nadia Islam',
-    designation: 'Advocate',
-    specialization: 'Property Law',
-    experience: 6,
-    location: 'Dhaka',
-    fee: 1800,
-    bio: 'Works with property ownership, land documentation, transfer and property dispute matters.',
-    languages: ['Bangla', 'English'],
-    education: ['LL.B', 'LL.M']
-  },
-  {
-    id: 3,
-    slug: 'farhan-ahmed',
-    name: 'Farhan Ahmed',
-    designation: 'Legal Consultant',
-    specialization: 'Business Law',
-    experience: 10,
-    location: 'Chattogram',
-    fee: 2000,
-    bio: 'Provides legal support for business registration, contracts and commercial legal disputes.',
-    languages: ['Bangla', 'English'],
-    education: ['LL.B', 'Bar-at-Law']
-  }
-];
+import usePublicData from '../../hooks/usePublicData.js';
+import { ErrorAlert, Loading, EmptyState, formatDate } from '../../components/Ui.jsx';
 
 export function LawyersPage() {
   const [search, setSearch] = useState('');
   const [specialization, setSpecialization] = useState('');
 
-  const filteredLawyers = lawyers.filter((lawyer) => {
-    const matchesSearch =
-      lawyer.name.toLowerCase().includes(search.toLowerCase());
-
-    const matchesSpecialization =
-      specialization === '' ||
-      lawyer.specialization === specialization;
-
-    return matchesSearch && matchesSpecialization;
-  });
+  const [minExperience, setMinExperience] = useState('');
+  const { data, error, loading } = usePublicData(`/public/lawyers?limit=50&q=${encodeURIComponent(search)}&service=${encodeURIComponent(specialization)}&minExperience=${encodeURIComponent(minExperience || '0')}`);
+  const serviceOptions = usePublicData('/public/services?limit=50');
+  const filteredLawyers = data?.items || [];
 
   return (
     <section className="py-16">
@@ -89,35 +44,29 @@ export function LawyersPage() {
               All Specializations
             </option>
 
-            <option value="Family Law">
-              Family Law
-            </option>
+            {serviceOptions.data?.items.map(service => <option key={service._id} value={service._id}>{service.title}</option>)}
 
-            <option value="Property Law">
-              Property Law
-            </option>
-
-            <option value="Business Law">
-              Business Law
-            </option>
           </select>
 
         </div>
 
+        <label className="mt-4 block"><span className="block font-semibold">Minimum years of experience</span><input type="number" min="0" className="mt-2 rounded border px-4 py-3" value={minExperience} onChange={event => setMinExperience(event.target.value)} /></label>
+        <ErrorAlert message={error || serviceOptions.error} />
+        {loading && <Loading />}
         <div className="mt-10 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
 
           {filteredLawyers.map((lawyer) => (
             <div
-              key={lawyer.id}
+              key={lawyer._id}
               className="rounded-lg border bg-white p-6 shadow-sm"
             >
 
               <div className="flex h-16 w-16 items-center justify-center rounded-full bg-blue-700 text-xl font-bold text-white">
-                {lawyer.name.charAt(0)}
+                {lawyer.user?.name?.charAt(0)}
               </div>
 
               <h2 className="mt-4 text-xl font-bold">
-                {lawyer.name}
+                {lawyer.user?.name}
               </h2>
 
               <p className="mt-1 font-semibold text-blue-700">
@@ -125,15 +74,15 @@ export function LawyersPage() {
               </p>
 
               <p className="mt-3 text-gray-600">
-                {lawyer.specialization}
+                {lawyer.services?.map(service => service.title).join(', ')}
               </p>
 
               <p className="mt-2 text-sm text-gray-500">
-                {lawyer.experience} years of experience
+                {lawyer.experienceYears} years of experience
               </p>
 
               <Link
-                to={`/lawyers/${lawyer.slug}`}
+                to={`/lawyers/${lawyer.slug || lawyer._id}`}
                 className="mt-5 inline-block font-semibold text-blue-700"
               >
                 View Profile
@@ -144,7 +93,7 @@ export function LawyersPage() {
 
         </div>
 
-        {filteredLawyers.length === 0 && (
+        {!loading && !error && filteredLawyers.length === 0 && (
           <p className="mt-8 text-gray-500">
             No lawyers found.
           </p>
@@ -158,9 +107,10 @@ export function LawyersPage() {
 export function LawyerDetailPage() {
   const { identifier } = useParams();
 
-  const lawyer = lawyers.find(
-    (item) => item.slug === identifier
-  );
+  const { data, error, loading } = usePublicData(`/public/lawyers/${identifier}`);
+  const lawyer = data?.lawyer;
+  if (loading) return <Loading />;
+  if (error) return <div className="container-page py-16"><ErrorAlert message={error} /></div>;
 
   if (!lawyer) {
     return (
@@ -188,11 +138,11 @@ export function LawyerDetailPage() {
         <aside className="rounded-lg border bg-white p-6 shadow-sm">
 
           <div className="flex h-24 w-24 items-center justify-center rounded-full bg-blue-700 text-3xl font-bold text-white">
-            {lawyer.name.charAt(0)}
+            {lawyer.user?.name?.charAt(0)}
           </div>
 
           <h1 className="mt-5 text-3xl font-bold">
-            {lawyer.name}
+            {lawyer.user?.name}
           </h1>
 
           <p className="mt-1 font-semibold text-blue-700">
@@ -200,7 +150,7 @@ export function LawyerDetailPage() {
           </p>
 
           <p className="mt-4 text-gray-600">
-            {lawyer.location}
+            {lawyer.chamberAddress || 'Chamber address not listed'}
           </p>
 
           <div className="mt-6 border-t pt-5">
@@ -210,13 +160,13 @@ export function LawyerDetailPage() {
             </p>
 
             <p className="text-2xl font-bold">
-              ৳{lawyer.fee}
+              ৳{lawyer.consultationFee?.toLocaleString()}
             </p>
 
           </div>
 
           <Link
-            to={`/consultation?lawyer=${lawyer.slug}`}
+            to={`/consultation?lawyer=${lawyer._id}`}
             className="mt-6 inline-block rounded bg-blue-700 px-5 py-3 font-semibold text-white"
           >
             Request Consultation
@@ -244,7 +194,7 @@ export function LawyerDetailPage() {
                 </p>
 
                 <p className="font-semibold">
-                  {lawyer.specialization}
+                  {lawyer.services?.map(service => service.title).join(', ')}
                 </p>
               </div>
 
@@ -254,7 +204,7 @@ export function LawyerDetailPage() {
                 </p>
 
                 <p className="font-semibold">
-                  {lawyer.experience} years
+                  {lawyer.experienceYears} years
                 </p>
               </div>
 
@@ -264,7 +214,7 @@ export function LawyerDetailPage() {
                 </p>
 
                 <p className="font-semibold">
-                  {lawyer.languages.join(', ')}
+                  {lawyer.languages?.join(', ')}
                 </p>
               </div>
 
@@ -274,7 +224,7 @@ export function LawyerDetailPage() {
                 </p>
 
                 <p className="font-semibold">
-                  {lawyer.education.join(', ')}
+                  {lawyer.education?.join(', ')}
                 </p>
               </div>
 
@@ -282,6 +232,7 @@ export function LawyerDetailPage() {
 
           </div>
 
+          <section className="mt-6 rounded-lg border bg-white p-6"><h2 className="text-2xl font-bold">Professional details</h2><p className="mt-4">Bar Council no.: {lawyer.barCouncilNumber}</p><h3 className="mt-5 font-semibold">Practice areas</h3>{lawyer.services?.map(service => <Link key={service._id} className="mt-3 block text-blue-700" to={`/services/${service.slug || service._id}`}>{service.title}</Link>)}{data.caseStudies.length > 0 && <><h3 className="mt-5 font-semibold">Case studies</h3>{data.caseStudies.map(item => <Link key={item._id} className="mt-3 block text-blue-700" to={`/case-studies/${item.slug || item._id}`}>{item.title}</Link>)}</>}</section>
         </main>
 
       </div>

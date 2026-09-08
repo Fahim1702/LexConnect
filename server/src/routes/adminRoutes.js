@@ -1,22 +1,24 @@
 import { Router } from 'express';
-import {
-  archiveConsultation, archiveLawyer, createLawyer, createResource, deleteResource, getOverview,
-  getResource, listConsultations, listLawyers, listResource, listTestimonials, listUsers,
-  reviewTestimonial, updateConsultation, updateLawyer, updateResource, updateUser
-} from '../controllers/adminController.js';
+import { listPosts, createPost, updatePost, hidePost } from '../controllers/blogController.js';
+import { listResource, getResource, createResource, updateResource, deleteResource, listUsers, updateUser, listMessages, updateMessage, listTestimonials, reviewTestimonial, archiveLawyer, createLawyer, updateLawyer, listLawyerCandidates, archiveConsultation, getOverview, listConsultations, listLawyers, updateConsultation } from '../controllers/adminController.js';
 import { authorize, protect } from '../middleware/auth.js';
 
 const router = Router();
 router.use(protect, authorize('admin'));
 router.get('/overview', getOverview);
+router.get('/lawyer-candidates', listLawyerCandidates);
 router.route('/lawyers').get(listLawyers).post(createLawyer);
 router.route('/lawyers/:id').patch(updateLawyer).delete(archiveLawyer);
 router.get('/consultations', listConsultations);
 router.route('/consultations/:id').patch(updateConsultation).delete(archiveConsultation);
-router.get('/users', listUsers);
-router.patch('/users/:id', updateUser);
+router.route('/content/blog').get(listPosts).post(createPost);
+router.route('/content/blog/:id').patch(updatePost).delete(hidePost);
 router.get('/testimonials', listTestimonials);
 router.patch('/testimonials/:id', reviewTestimonial);
 router.route('/content/:resource').get(listResource).post(createResource);
 router.route('/content/:resource/:id').get(getResource).patch(updateResource).delete(deleteResource);
+router.get('/users', listUsers);
+router.patch('/users/:id', updateUser);
+router.get('/messages', listMessages);
+router.patch('/messages/:id', updateMessage);
 export default router;

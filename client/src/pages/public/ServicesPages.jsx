@@ -1,42 +1,14 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 
-const services = [
-  {
-    id: 1,
-    slug: 'family-law',
-    title: 'Family Law',
-    category: 'Personal',
-    summary: 'Legal support for marriage, divorce, custody and family disputes.',
-    description:
-      'Family law covers legal matters involving marriage, divorce, child custody, maintenance and other family-related disputes.'
-  },
-  {
-    id: 2,
-    slug: 'property-law',
-    title: 'Property Law',
-    category: 'Property',
-    summary: 'Legal assistance for land, ownership, documentation and property disputes.',
-    description:
-      'Property law deals with ownership, transfer, documentation, land disputes and other legal matters involving property.'
-  },
-  {
-    id: 3,
-    slug: 'business-law',
-    title: 'Business Law',
-    category: 'Commercial',
-    summary: 'Legal support for businesses, contracts and company-related matters.',
-    description:
-      'Business law covers contracts, business registration, commercial disputes and other legal issues faced by companies.'
-  }
-];
+import usePublicData from '../../hooks/usePublicData.js';
+import { ErrorAlert, Loading, EmptyState, formatDate } from '../../components/Ui.jsx';
 
 export function ServicesPage() {
   const [search, setSearch] = useState('');
 
-  const filteredServices = services.filter((service) =>
-    service.title.toLowerCase().includes(search.toLowerCase())
-  );
+  const { data, error, loading } = usePublicData(`/public/services?limit=50&q=${encodeURIComponent(search)}`);
+  const filteredServices = data?.items || [];
 
   return (
     <section className="py-16">
@@ -58,11 +30,13 @@ export function ServicesPage() {
           className="mt-8 w-full max-w-lg rounded border px-4 py-3"
         />
 
+        <ErrorAlert message={error} />
+        {loading && <Loading />}
         <div className="mt-10 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
 
           {filteredServices.map((service) => (
             <div
-              key={service.id}
+              key={service._id}
               className="rounded-lg border bg-white p-6 shadow-sm"
             >
               <p className="text-sm font-semibold text-blue-700">
@@ -74,11 +48,11 @@ export function ServicesPage() {
               </h2>
 
               <p className="mt-3 text-gray-600">
-                {service.summary}
+                {service.summary || service.description}
               </p>
 
               <Link
-                to={`/services/${service.slug}`}
+                to={`/services/${service.slug || service._id}`}
                 className="mt-5 inline-block font-semibold text-blue-700"
               >
                 View Service
@@ -88,7 +62,7 @@ export function ServicesPage() {
 
         </div>
 
-        {filteredServices.length === 0 && (
+        {!loading && !error && filteredServices.length === 0 && (
           <p className="mt-8 text-gray-500">
             No services found.
           </p>
@@ -102,9 +76,10 @@ export function ServicesPage() {
 export function ServiceDetailPage() {
   const { identifier } = useParams();
 
-  const service = services.find(
-    (item) => item.slug === identifier
-  );
+  const { data, error, loading } = usePublicData(`/public/services/${identifier}`);
+  const service = data?.service;
+  if (loading) return <Loading />;
+  if (error) return <div className="container-page py-16"><ErrorAlert message={error} /></div>;
 
   if (!service) {
     return (
@@ -137,7 +112,7 @@ export function ServiceDetailPage() {
           </h1>
 
           <p className="mt-5 max-w-2xl text-gray-300">
-            {service.summary}
+            {service.summary || service.description}
           </p>
 
         </div>
@@ -155,11 +130,12 @@ export function ServiceDetailPage() {
           </p>
 
           <Link
-            to={`/consultation?service=${service.slug}`}
+            to={`/consultation?service=${service._id}`}
             className="mt-8 inline-block rounded bg-blue-700 px-5 py-3 font-semibold text-white"
           >
             Request Consultation
           </Link>
+          <div className="mt-10 grid gap-6 md:grid-cols-2"><section><h2 className="text-2xl font-bold">Lawyers for this service</h2>{data.lawyers.map(lawyer => <Link className="mt-4 block text-blue-700" key={lawyer._id} to={`/lawyers/${lawyer.slug || lawyer._id}`}>{lawyer.user?.name} ? {lawyer.designation}</Link>)}{!data.lawyers.length && <p className="mt-4 text-gray-600">No lawyer assigned yet.</p>}</section><section><h2 className="text-2xl font-bold">Related case studies</h2>{data.caseStudies.map(item => <Link className="mt-4 block text-blue-700" key={item._id} to={`/case-studies/${item.slug || item._id}`}>{item.title}</Link>)}</section></div>
 
         </div>
       </section>

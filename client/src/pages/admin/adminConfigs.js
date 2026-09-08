@@ -1,10 +1,10 @@
 export const adminConfigs = {
   lawyers: {
+    description: 'Ask the lawyer to register and sign in first, then select their account below. They should sign in again after their profile is created.',
     title: 'Lawyers', singular: 'lawyer', endpoint: '/admin/lawyers',
     columns: [['Name', 'user.name'], ['Designation', 'designation'], ['Bar no.', 'barCouncilNumber'], ['Experience', 'experienceYears'], ['Active', 'isActive']],
     fields: [
-      { name: 'name', label: 'Full name', required: true, from: 'user.name' }, { name: 'email', label: 'Email', type: 'email', required: true, from: 'user.email' },
-      { name: 'phone', label: 'Phone', from: 'user.phone' }, { name: 'password', label: 'Temporary password', type: 'password', createOnly: true, requiredOnCreate: true },
+      { name: 'user', label: 'Registered account', type: 'select', lookup: 'users', createOnly: true, requiredOnCreate: true },
       { name: 'designation', label: 'Designation', required: true }, { name: 'barCouncilNumber', label: 'Bar Council number', required: true },
       { name: 'experienceYears', label: 'Years of experience', type: 'number' }, { name: 'consultationFee', label: 'Consultation fee (BDT)', type: 'number' },
       { name: 'services', label: 'Services', type: 'multiselect', lookup: 'services' }, { name: 'chamberAddress', label: 'Chamber address' },

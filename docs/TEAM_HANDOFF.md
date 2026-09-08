@@ -1,61 +1,38 @@
 # Team handoff
 
-## Fahim — lead, backend, auth, infrastructure
+## Ownership for this rebuild
 
-Primary ownership:
+- **Member 1 (Fahim):** backend, database, authentication, API contracts and integration.
+- **Member 2:** public website and client features.
+- **Member 3:** lawyer and admin features.
 
-- `server/src/config/`
-- `server/src/models/`
-- `server/src/middleware/`
-- `server/src/controllers/authController.js`
-- `server/src/routes/authRoutes.js`
-- `server/src/app.js`, `server/src/server.js`
-- `.env` configuration, Atlas, Render, Vercel, and integration merges
+## Getting the same runnable baseline
 
-FR coverage: FR-01, FR-02, FR-21, FR-22.
+The integration changes are on `backend-auth`. After Fahim pushes the checkpoint, fetch that branch. Keep your own uncommitted work safe before changing branches or merging.
 
-## Nody — admin console
+For a new integration branch:
 
-Primary ownership:
+```sh
+git fetch origin
+git switch -c your-integration-branch origin/backend-auth
+npm ci
+npm run setup
+```
 
-- `client/src/components/AdminCrud.jsx`
-- `client/src/pages/admin/`
-- `server/src/config/adminResources.js`
-- `server/src/controllers/adminController.js`
-- `server/src/routes/adminRoutes.js`
+Use your own branch name. Existing teammate branches can merge `origin/backend-auth` after reviewing conflicts with their work. Do not merge `backend-auth` into `main` without Fahim's approval.
 
-The single `AdminCrud` component renders Lawyers, Services, Case Studies, Blog, and FAQ from `adminConfigs.js`. Add fields and table columns in the configuration rather than copying the page. FR coverage: FR-15 through FR-20.
+Configure your own MongoDB connection in `server/.env`, optionally run `npm run seed`, then run `npm run dev`. Full setup and troubleshooting are in [README](../README.md).
 
-## Nirjon — public site
+## Available for frontend work now
 
-Primary ownership:
+Public page APIs, contact and guest consultation submission are mounted by `server/src/server.js`. Firebase registration/login, client profile and owned requests are connected once the team configures the shared Firebase project. Management CRUD now needs an administrator's Firebase ID token. A service link must use `service.slug || service._id`, because services created during the rebuild may have no slug. Its summary can fall back to `description`.
 
-- `client/src/layouts/PublicLayout.jsx`
-- `client/src/pages/public/`
-- `server/src/controllers/publicController.js`
-- `server/src/routes/publicRoutes.js`
+The public pages can load an empty database. Add public records when needed; the starter seed only adds services and a FAQ.
 
-FR coverage: FR-03 to FR-06 and FR-11 to FR-14, plus responsive public styling.
+## Integration status
 
-## Shama — consultation and role dashboards
+Follow [Firebase setup](FIREBASE_SETUP.md) before testing login. The admin overview and consultation assignment page now work with active Firebase-linked lawyer accounts. Lawyer dashboard, admin content/user management, contact inbox, blog publishing and testimonials are connected. Service removal archives records to preserve relationships. See [MVP handoff](MVP_HANDOFF.md) for final demo checks. The older controllers and `server/src/app.js` are not automatically active. Old password-based demo accounts must be migrated explicitly; the API never links them to Firebase by email alone.
 
-Primary ownership:
+## Before sharing a checkpoint
 
-- `client/src/pages/client/`
-- `client/src/pages/lawyer/`
-- `client/src/pages/public/ConsultationPage.jsx`
-- `server/src/controllers/consultationController.js`
-- `server/src/controllers/lawyerController.js`
-- client/lawyer/consultation routes
-
-FR coverage: FR-07 to FR-10 plus testimonial submission and approval workflow integration.
-
-## Suggested Git workflow
-
-1. Fahim merges the baseline models, authentication, and route mounts.
-2. Each member branches from that same baseline.
-3. Merge public site and consultation dashboards.
-4. Merge the admin console after its API contract is stable.
-5. Run `npm run check`, seed a fresh demo database, and test all three roles before deployment.
-
-Do not commit `.env`, replace another member's unrelated edits, or run the seed command against a shared production database.
+Run `npm run check`. With MongoDB available, run `npm run test:integration` for the public/form/CRUD contracts. Then commit the specific changed files on your own branch and push that branch. Keep real `.env` files out of Git.

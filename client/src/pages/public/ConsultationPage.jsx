@@ -30,13 +30,10 @@ export default function ConsultationPage() {
   useEffect(() => {
     async function loadOptions() {
       try {
-        const serviceResponse = await api.get('/public/services', {
-          params: { limit: 50 }
-        });
-
-        const lawyerResponse = await api.get('/public/lawyers', {
-          params: { limit: 50 }
-        });
+        const [serviceResponse, lawyerResponse] = await Promise.all([
+          api.get('/public/services', { params: { limit: 50 } }),
+          api.get('/public/lawyers', { params: { limit: 50 } })
+        ]);
 
         setServices(serviceResponse.data.items);
         setLawyers(lawyerResponse.data.items);
@@ -163,6 +160,7 @@ export default function ConsultationPage() {
               <input
                 type="text"
                 name="guestName"
+                required
                 value={form.guestName}
                 onChange={handleChange}
                 disabled={Boolean(user)}
@@ -178,6 +176,7 @@ export default function ConsultationPage() {
               <input
                 type="email"
                 name="guestEmail"
+                required
                 value={form.guestEmail}
                 onChange={handleChange}
                 disabled={Boolean(user)}
@@ -193,6 +192,7 @@ export default function ConsultationPage() {
               <input
                 type="text"
                 name="guestPhone"
+                required
                 value={form.guestPhone}
                 onChange={handleChange}
                 className="w-full rounded border px-4 py-3"
@@ -206,6 +206,7 @@ export default function ConsultationPage() {
 
               <select
                 name="service"
+                required
                 value={form.service}
                 onChange={handleChange}
                 className="w-full rounded border px-4 py-3"
@@ -275,6 +276,7 @@ export default function ConsultationPage() {
             <input
               type="text"
               name="subject"
+                required
               value={form.subject}
               onChange={handleChange}
               maxLength={180}
@@ -289,11 +291,12 @@ export default function ConsultationPage() {
 
             <textarea
               name="details"
+                required
               value={form.details}
               onChange={handleChange}
               rows="6"
               maxLength={5000}
-              placeholder="Briefly describe the legal issue."
+              placeholder="Briefly describe the legal issue. Do not include highly sensitive evidence."
               className="w-full rounded border px-4 py-3"
             />
           </div>
