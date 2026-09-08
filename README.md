@@ -86,6 +86,10 @@ npm run test:integration
 
 See [MVP handoff and demo checks](docs/MVP_HANDOFF.md) for feature coverage and the remaining real-account/browser checks.
 
+## Deployment
+
+Follow [Render and Vercel deployment](docs/DEPLOYMENT.md). Use the repository root for both services so the npm workspace lockfile is available. Hosting secrets are entered directly in the service dashboards.
+
 ## Team workflow
 
 Commit only source code and `.env.example` templates. Keep real environment files ignored. Never share database credentials through Git.
