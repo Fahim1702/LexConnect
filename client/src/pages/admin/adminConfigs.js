@@ -6,7 +6,7 @@ export const adminConfigs = {
     fields: [
       { name: 'user', label: 'Registered account', type: 'select', lookup: 'users', createOnly: true, requiredOnCreate: true },
       { name: 'designation', label: 'Designation', required: true }, { name: 'barCouncilNumber', label: 'Bar Council number', required: true },
-      { name: 'experienceYears', label: 'Years of experience', type: 'number' }, { name: 'consultationFee', label: 'Consultation fee (BDT)', type: 'number' },
+      { name: 'experienceYears', label: 'Years of experience', type: 'number', min: 0, max: 70, step: 'any' }, { name: 'consultationFee', label: 'Consultation fee (BDT)', type: 'number', min: 0, step: 'any' },
       { name: 'services', label: 'Services', type: 'multiselect', lookup: 'services' }, { name: 'chamberAddress', label: 'Chamber address' },
       { name: 'education', label: 'Education (comma separated)', type: 'array' }, { name: 'languages', label: 'Languages (comma separated)', type: 'array' },
       { name: 'bio', label: 'Biography', type: 'textarea', required: true }, { name: 'photoUrl', label: 'Photo URL or /path', type: 'text' },

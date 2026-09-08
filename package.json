@@ -6,13 +6,14 @@
   "scripts": {
     "setup": "node scripts/setup-env.mjs",
     "test:setup": "node --test scripts/setup-env.test.mjs",
+    "test:admin": "node --test scripts/admin-form.test.mjs",
     "test:integration": "node scripts/smoke-api.mjs",
     "dev": "concurrently -n API,WEB -c blue,green \"npm run dev -w server\" \"npm run dev -w client\"",
     "build": "npm run build -w client",
     "start": "npm run start -w server",
     "seed": "npm run seed -w server",
     "seed:demo": "node server/src/seeds/demo.js",
-    "check": "npm run verify:source && npm run test:setup && npm run check -w server && npm run build -w client",
+    "check": "npm run verify:source && npm run test:setup && npm run test:admin && npm run check -w server && npm run build -w client",
     "verify:source": "node scripts/verify-source.mjs"
   },
   "devDependencies": {
