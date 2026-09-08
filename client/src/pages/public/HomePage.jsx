@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 
+import LawyerAvatar from '../../components/LawyerAvatar.jsx';
 import usePublicData from '../../hooks/usePublicData.js';
 import { ErrorAlert, Loading, EmptyState, formatDate } from '../../components/Ui.jsx';
 
@@ -117,9 +118,7 @@ export default function HomePage() {
                 key={lawyer._id}
                 className="rounded-lg bg-white p-6 shadow-sm"
               >
-                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-blue-700 text-xl font-bold text-white">
-                  {lawyer.user?.name?.charAt(0)}
-                </div>
+                <LawyerAvatar lawyer={lawyer} />
 
                 <h3 className="mt-4 text-xl font-semibold">
                   {lawyer.user?.name}

@@ -31,8 +31,8 @@ export default function ConsultationPage() {
     async function loadOptions() {
       try {
         const [serviceResponse, lawyerResponse] = await Promise.all([
-          api.get('/public/services', { params: { limit: 50 } }),
-          api.get('/public/lawyers', { params: { limit: 50 } })
+          api.get('/public/service-options'),
+          api.get('/public/lawyer-options')
         ]);
 
         setServices(serviceResponse.data.items);

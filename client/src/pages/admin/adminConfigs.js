@@ -9,7 +9,7 @@ export const adminConfigs = {
       { name: 'experienceYears', label: 'Years of experience', type: 'number' }, { name: 'consultationFee', label: 'Consultation fee (BDT)', type: 'number' },
       { name: 'services', label: 'Services', type: 'multiselect', lookup: 'services' }, { name: 'chamberAddress', label: 'Chamber address' },
       { name: 'education', label: 'Education (comma separated)', type: 'array' }, { name: 'languages', label: 'Languages (comma separated)', type: 'array' },
-      { name: 'bio', label: 'Biography', type: 'textarea', required: true }, { name: 'photoUrl', label: 'Photo URL', type: 'url' },
+      { name: 'bio', label: 'Biography', type: 'textarea', required: true }, { name: 'photoUrl', label: 'Photo URL or /path', type: 'text' },
       { name: 'isFeatured', label: 'Featured lawyer', type: 'boolean' }, { name: 'isActive', label: 'Active', type: 'boolean' }
     ]
   },

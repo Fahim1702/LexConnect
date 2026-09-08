@@ -1,7 +1,9 @@
 import { Router } from 'express';
+import Service from '../models/Service.js';
+import { asyncHandler } from '../utils/asyncHandler.js';
 import ApiError from '../utils/ApiError.js';
 import {
-  createContactMessage, getBlogPost, getCaseStudy, getHome, getLawyer, getService,
+  listLawyerOptions, createContactMessage, getBlogPost, getCaseStudy, getHome, getLawyer, getService,
   listBlogPosts, listCaseStudies, listFAQs, listLawyers, listServices
 } from '../controllers/publicController.js';
 
@@ -22,8 +24,13 @@ router.use((req, _res, next) => {
 });
 router.get('/home', getHome);
 router.get('/services', listServices);
+router.get('/service-options', asyncHandler(async (_req, res) => {
+  const items = await Service.find({ isActive: true }).select('title category').sort('title');
+  res.json({ success: true, items });
+}));
 router.get('/services/:identifier', getService);
 router.get('/lawyers', listLawyers);
+router.get('/lawyer-options', listLawyerOptions);
 router.get('/lawyers/:identifier', getLawyer);
 router.get('/case-studies', listCaseStudies);
 router.get('/case-studies/:identifier', getCaseStudy);

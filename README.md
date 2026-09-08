@@ -12,7 +12,7 @@ A React, Express and MongoDB course project with Firebase Authentication. The MV
 - Admin overview and consultation management, including validated lawyer assignment and cancellation history.
 - Admin lawyer profile creation for existing Firebase-linked accounts, editing, archiving and reactivation.
 - Lawyer profile editing and assigned consultation updates with private notes.
-- Lawyer blog drafts and admin editing, publishing and hiding of posts.
+- Lawyer-owned blog editing/publishing/hiding and admin blog management.
 - Client testimonials for resolved consultations, with admin approval before public display.
 - Admin service, case-study and FAQ management, account activation controls and contact inbox.
 - Archiving preserves service references and existing consultation records.
@@ -50,6 +50,16 @@ Seeding is optional. It adds three starter services and one FAQ without deleting
 Open **http://localhost:5173**. Check **http://localhost:5000/api/health** for the backend.
 
 If you change the API port, update `VITE_API_URL` in `client/.env` to the same port, including `/api`, and restart Vite. If you change the frontend port/origin, update `CLIENT_URL` too. Vite fails clearly when port 5173 is occupied instead of silently selecting an incompatible origin.
+
+## Optional fictional demo data
+
+```sh
+npm run seed:demo
+```
+
+Adds 3 fictional lawyers and 3 clients with sample consultations, articles, case studies, FAQs and a review. Names and content are labeled Demo, emails use `.example.test`, and avatars are local illustrations. Reruns preserve existing records and edits. This command writes to your configured development database and refuses production mode.
+
+These are MongoDB demonstration profiles, not Firebase login accounts. There are no demo passwords or authentication bypasses. Register real test accounts for role-based sign-in tests. See [demo data](docs/DEMO_DATA.md).
 
 ## Verification
 

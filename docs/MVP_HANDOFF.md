@@ -13,11 +13,17 @@
 | FR-20 | Consultation assignment, status management, notes and retained history |
 | FR-21 | Registered account listing and activation/deactivation |
 
-Additional connected workflows: lawyer blog drafts, client testimonials with admin approval, and the admin contact inbox. Categories are fields on services and content. Archiving is used for removal to preserve existing relationships. Firebase Authentication replaces the proposal's original custom password/JWT implementation per the instructor's requirement.
+Public service category and case-study service filters, category-grouped FAQs, lawyer photos, and directory/blog pagination are connected. Lawyers can create, edit, publish and hide their own blog posts (FR-18).
+
+Additional connected workflows: client testimonials with admin approval, and the admin contact inbox. Categories are fields on services and content. Archiving is used for removal to preserve existing relationships. Firebase Authentication replaces the proposal's original custom password/JWT implementation per the instructor's requirement.
 
 ## Verification completed
 
 `npm run check` checks source imports, setup behavior, backend tests and the production frontend build. `npm run test:integration` exercises real HTTP and MongoDB against a temporary database, covering each role, public content visibility, assignments, private notes, publication, reviews, account activation, contact statuses and archived service references. The test database is removed afterward. Firebase identities are controlled test fixtures; a separate fault-injection case tests lawyer-profile cleanup.
+
+## Mock content
+
+Run `npm run seed:demo` to add labeled fictional lawyers, clients and content without overwriting existing edits. Mock users cannot authenticate; use real Firebase test accounts for the full workflow. See [demo data](DEMO_DATA.md).
 
 ## Before the demo or deployment
 

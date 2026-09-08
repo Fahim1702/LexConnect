@@ -74,7 +74,7 @@ Old MongoDB accounts without `firebaseUid` are not automatically linked by email
 - Admin protection for service CRUD and consultation management.
 - Signed-in client ownership, viewing requests, pending cancellation and profile editing.
 
-Admin overview, lawyer provisioning, assignment and consultation cancellation are also connected. Lawyers can edit their professional profiles and update assigned requests. Lawyer blog drafts and admin publishing are connected. Client testimonials and admin approval are also connected. Admin service/case-study/FAQ management, account activation and the contact inbox are connected. Services are archived rather than permanently deleted, preserving existing references.
+Admin overview, lawyer provisioning, assignment and consultation cancellation are also connected. Lawyers can edit their professional profiles and update assigned requests. Lawyer-owned blog editing/publishing and admin publishing are connected. Client testimonials and admin approval are also connected. Admin service/case-study/FAQ management, account activation and the contact inbox are connected. Services are archived rather than permanently deleted, preserving existing references.
 
 ## Add a lawyer and test the workflow
 
@@ -92,7 +92,7 @@ Profile creation validates the data before changing the account role and removes
 
 ## Blog drafts and publishing
 
-An active lawyer can create drafts from `/lawyer/blog`. Drafts are visible to their author and admins. The server assigns the author from the signed-in account and prevents lawyers from publishing their own submissions.
+An active lawyer can create drafts from `/lawyer/blog`. Drafts are visible to their author and admins. The server assigns the author from the signed-in account. To match FR-18, active lawyers can edit, publish and hide their own posts; they cannot modify another author's posts or choose featured status. New posts start as drafts.
 
 Admins can review and edit drafts at `/admin/blog`, then tick **Published** to make them public. **Archive** hides a post without deleting it; editing and publishing it again restores it. The first publication date is retained. Changing a title updates its URL slug, so update any shared links after renaming a published post.
 

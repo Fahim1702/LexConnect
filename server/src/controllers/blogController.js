@@ -3,7 +3,7 @@ import BlogPost from '../models/BlogPost.js';
 import ApiError from '../utils/ApiError.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 
-function postFields(body = {}) {
+export function postFields(body = {}) {
   const fields = ['title', 'excerpt', 'content', 'category', 'coverUrl', 'isFeatured', 'isPublished'];
   for (const key of ['isFeatured', 'isPublished']) {
     if (body[key] !== undefined && typeof body[key] !== 'boolean') throw new ApiError(400, `${key} must be a boolean.`);

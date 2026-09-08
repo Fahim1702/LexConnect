@@ -1,14 +1,16 @@
+import { useState } from 'react';
+import Pagination from '../../components/Pagination.jsx';
 import { Link, useParams } from 'react-router-dom';
 
 import usePublicData from '../../hooks/usePublicData.js';
 import { ErrorAlert, Loading, EmptyState, formatDate } from '../../components/Ui.jsx';
 
 export function CaseStudiesPage() {
-  const { data, error, loading } = usePublicData('/public/case-studies');
+  const [service, setService] = useState('');
+  const options = usePublicData('/public/service-options');
+  const { data, error, loading } = usePublicData(`/public/case-studies?service=${encodeURIComponent(service)}`);
   const caseStudies = data?.items || [];
-  if (loading) return <Loading />;
-  if (error) return <div className="container-page py-16"><ErrorAlert message={error} /></div>;
-  if (!caseStudies.length) return <div className="container-page py-16"><EmptyState /></div>;
+
   return (
     <section className="py-16">
       <div className="container-page">
@@ -21,6 +23,8 @@ export function CaseStudiesPage() {
           Example legal situations showing the problem, approach and outcome.
         </p>
 
+        <label className="mt-6 block"><span className="block font-semibold">Legal service</span><select className="mt-2 rounded border px-4 py-3" value={service} onChange={event => setService(event.target.value)}><option value="">All services</option>{options.data?.items.map(item => <option key={item._id} value={item._id}>{item.title}</option>)}</select></label>
+        <ErrorAlert message={error || options.error} />{loading && <Loading />}{!loading && !error && !caseStudies.length && <EmptyState />}
         <div className="mt-10 grid gap-6 md:grid-cols-2">
 
           {caseStudies.map((item) => (
@@ -137,7 +141,8 @@ export function CaseStudyDetailPage() {
 }
 
 export function BlogPage() {
-  const { data, error, loading } = usePublicData('/public/blog?limit=50');
+  const [page, setPage] = useState(1);
+  const { data, error, loading } = usePublicData(`/public/blog?limit=12&page=${page}`);
   const blogPosts = data?.items || [];
   if (loading) return <Loading />;
   if (error) return <div className="container-page py-16"><ErrorAlert message={error} /></div>;
@@ -190,6 +195,7 @@ export function BlogPage() {
 
         </div>
 
+        <Pagination pagination={data?.pagination} page={page} onChange={setPage} />
       </div>
     </section>
   );
@@ -254,6 +260,7 @@ export function BlogDetailPage() {
 export function FAQPage() {
   const { data, error, loading } = usePublicData('/public/faqs');
   const faqs = data?.items || [];
+  const categories = [...new Set(faqs.map(faq => faq.category || 'General'))];
   if (loading) return <Loading />;
   if (error) return <div className="container-page py-16"><ErrorAlert message={error} /></div>;
   if (!faqs.length) return <div className="container-page py-16"><EmptyState /></div>;
@@ -271,7 +278,7 @@ export function FAQPage() {
 
         <div className="mt-10 grid gap-4">
 
-          {faqs.map((faq) => (
+          {categories.map(category => <section key={category}><h2 className="mb-4 text-2xl font-bold">{category}</h2>{faqs.filter(faq => (faq.category || 'General') === category).map((faq) => (
             <details
               key={faq._id}
               className="rounded-lg border bg-white"
@@ -284,7 +291,7 @@ export function FAQPage() {
                 {faq.answer}
               </p>
             </details>
-          ))}
+          ))}</section>)}
 
         </div>
 

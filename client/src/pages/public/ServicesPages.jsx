@@ -1,13 +1,16 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 
+import Pagination from '../../components/Pagination.jsx';
 import usePublicData from '../../hooks/usePublicData.js';
 import { ErrorAlert, Loading, EmptyState, formatDate } from '../../components/Ui.jsx';
 
 export function ServicesPage() {
   const [search, setSearch] = useState('');
+  const [category, setCategory] = useState('');
+  const [page, setPage] = useState(1);
 
-  const { data, error, loading } = usePublicData(`/public/services?limit=50&q=${encodeURIComponent(search)}`);
+  const { data, error, loading } = usePublicData(`/public/services?limit=12&page=${page}&category=${encodeURIComponent(category)}&q=${encodeURIComponent(search)}`);
   const filteredServices = data?.items || [];
 
   return (
@@ -26,10 +29,11 @@ export function ServicesPage() {
           type="text"
           placeholder="Search services..."
           value={search}
-          onChange={(event) => setSearch(event.target.value)}
+          onChange={(event) => { setSearch(event.target.value); setPage(1); }}
           className="mt-8 w-full max-w-lg rounded border px-4 py-3"
         />
 
+        <label className="mt-4 block"><span className="block font-semibold">Category</span><select className="mt-2 rounded border px-4 py-3" value={category} onChange={event => { setCategory(event.target.value); setPage(1); }}><option value="">All categories</option>{(data?.categories || (category ? [category] : [])).map(value => <option key={value}>{value}</option>)}</select></label>
         <ErrorAlert message={error} />
         {loading && <Loading />}
         <div className="mt-10 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -62,6 +66,7 @@ export function ServicesPage() {
 
         </div>
 
+        <Pagination pagination={data?.pagination} page={page} onChange={setPage} loading={loading} />
         {!loading && !error && filteredServices.length === 0 && (
           <p className="mt-8 text-gray-500">
             No services found.
