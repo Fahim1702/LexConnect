@@ -2,18 +2,22 @@ services:
   - type: web
     name: lexconnect-bd-api
     runtime: node
-    rootDir: server
-    buildCommand: npm install
-    startCommand: npm start
+    # Keep the workspace package.json and package-lock.json available.
+    buildCommand: npm ci --workspace server --omit=dev
+    startCommand: npm run start --workspace server
     healthCheckPath: /api/health
     envVars:
       - key: NODE_ENV
         value: production
+      - key: NODE_VERSION
+        value: 24.18.0
+      - key: DNS_SERVERS
+        value: system
       - key: MONGODB_URI
         sync: false
       - key: FIREBASE_PROJECT_ID
         sync: false
       - key: GOOGLE_APPLICATION_CREDENTIALS
-        sync: false
+        value: /etc/secrets/firebase-admin.json
       - key: CLIENT_URL
         sync: false
