@@ -99,14 +99,17 @@ function AdminConsultationCard({ item, lawyers, busy, onSave, onCancel }) {
       <form className="mt-5 grid gap-4 lg:grid-cols-2" onSubmit={submit}>
         <label>
           <span className="label">Assigned lawyer</span>
-          <select className="input" value={form.assignedLawyer} onChange={(event) => change('assignedLawyer', event.target.value)}>
+          <select disabled={busy} className="input" value={form.assignedLawyer} onChange={(event) => change('assignedLawyer', event.target.value)}>
             <option value="">Unassigned</option>
+            {item.assignedLawyer && !lawyers.some(lawyer => lawyer._id === item.assignedLawyer._id) && (
+              <option value={item.assignedLawyer._id} disabled>{item.assignedLawyer.user?.name || 'Current lawyer'} (unavailable)</option>
+            )}
             {lawyers.map((lawyer) => <option value={lawyer._id} key={lawyer._id}>{lawyer.user?.name || lawyer.designation}</option>)}
           </select>
         </label>
         <label>
           <span className="label">Status</span>
-          <select className="input" value={form.status} onChange={(event) => change('status', event.target.value)}>
+          <select disabled={busy} className="input" value={form.status} onChange={(event) => change('status', event.target.value)}>
             {consultationStatuses.map((status) => <option key={status}>{status}</option>)}
           </select>
         </label>
@@ -114,6 +117,7 @@ function AdminConsultationCard({ item, lawyers, busy, onSave, onCancel }) {
           <span className="label">Private admin note</span>
           <textarea
             className="input min-h-24"
+            disabled={busy}
             maxLength={3000}
             value={form.adminNote}
             onChange={(event) => change('adminNote', event.target.value)}
@@ -212,7 +216,7 @@ export function AdminConsultationsPage() {
                 key={`${item._id}:${item.updatedAt}`}
                 item={item}
                 lawyers={lawyers}
-                busy={busyId === item._id}
+                busy={Boolean(busyId)}
                 onSave={save}
                 onCancel={cancel}
               />
@@ -277,7 +281,7 @@ export function AdminUsersPage() {
                 <tr key={item._id}>
                   <td className="font-semibold">{item.name}</td><td>{item.email}</td><td className="capitalize">{item.role}</td>
                   <td>{formatDate(item.createdAt)}</td><td><StatusBadge value={item.isActive ? 'active' : 'inactive'} /></td>
-                  <td><button disabled={item.role === 'admin' || busyId === item._id} title={item.role === 'admin' ? 'Administrator accounts are managed by a maintainer' : undefined} className={item.isActive ? 'btn-danger' : 'btn-primary !px-3 !py-2 !text-sm'} onClick={() => toggle(item)}>{busyId === item._id ? 'Saving…' : item.isActive ? 'Deactivate' : 'Activate'}</button></td>
+                  <td><button disabled={item.role === 'admin' || Boolean(busyId)} title={item.role === 'admin' ? 'Administrator accounts are managed by a maintainer' : undefined} className={item.isActive ? 'btn-danger' : 'btn-primary !px-3 !py-2 !text-sm'} onClick={() => toggle(item)}>{busyId === item._id ? 'Saving…' : item.isActive ? 'Deactivate' : 'Activate'}</button></td>
                 </tr>
               ))}</tbody>
             </table>
@@ -344,8 +348,8 @@ export function AdminTestimonialsPage() {
               </div>
               <p className="mt-4 whitespace-pre-wrap leading-7 text-slate-700">“{item.comment}”</p>
               <div className="mt-5 flex gap-3">
-                {!item.isApproved && <button disabled={busyId === item._id} className="btn-primary !px-4 !py-2 !text-sm" onClick={() => review(item, true)}>Approve</button>}
-                {item.isApproved && <button disabled={busyId === item._id} className="btn-secondary !px-4 !py-2 !text-sm" onClick={() => review(item, false)}>Hide</button>}
+                {!item.isApproved && <button disabled={Boolean(busyId)} className="btn-primary !px-4 !py-2 !text-sm" onClick={() => review(item, true)}>Approve</button>}
+                {item.isApproved && <button disabled={Boolean(busyId)} className="btn-secondary !px-4 !py-2 !text-sm" onClick={() => review(item, false)}>Hide</button>}
               </div>
             </article>
           ))}</div>
@@ -403,7 +407,7 @@ export function AdminMessagesPage() {
             <article className="card" key={item._id}>
               <div className="flex flex-wrap justify-between gap-4">
                 <div className="min-w-0"><h2 className="text-xl font-bold">{item.subject}</h2><p className="mt-2 break-words text-sm text-slate-600">{item.name} · {item.email}{item.phone ? ` · ${item.phone}` : ''} · {formatDate(item.createdAt)}</p></div>
-                <label className="min-w-40"><span className="label">Status</span><select disabled={busyId === item._id} className="input" value={item.status} onChange={(event) => update(item._id, event.target.value)}>{['new', 'read', 'replied', 'archived'].map((status) => <option key={status}>{status}</option>)}</select></label>
+                <label className="min-w-40"><span className="label">Status</span><select disabled={Boolean(busyId)} className="input" value={item.status} onChange={(event) => update(item._id, event.target.value)}>{['new', 'read', 'replied', 'archived'].map((status) => <option key={status}>{status}</option>)}</select></label>
               </div>
               <p className="mt-4 whitespace-pre-wrap leading-7 text-slate-700">{item.message}</p>
             </article>

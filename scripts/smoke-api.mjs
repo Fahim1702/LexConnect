@@ -16,6 +16,8 @@ import BlogPost from '../server/src/models/BlogPost.js';
 import CaseStudy from '../server/src/models/CaseStudy.js';
 import ConsultationRequest from '../server/src/models/ConsultationRequest.js';
 import { firebaseIdentity } from '../server/src/config/firebase.js';
+import { initialForm, formPayload } from '../client/src/components/adminForm.js';
+import { adminConfigs } from '../client/src/pages/admin/adminConfigs.js';
 
 // Always override the configured database name. Never seed or clear the user's DB.
 const database = `lexconnect_smoke_${randomUUID().replaceAll('-', '').slice(0, 16)}`;
@@ -390,6 +392,11 @@ try {
   const managedCase = (await request('/admin/content/case-studies', 'POST', casePayload, 201, 'admin')).item;
   await request(`/public/case-studies/${managedCase._id}`, 'GET', undefined, 404);
   const casePath = `/admin/content/case-studies/${managedCase._id}`;
+  const caseFields = adminConfigs['case-studies'].fields;
+  const editorPayload = formPayload(caseFields, { ...initialForm(caseFields, managedCase), summary: 'Edited without reselecting the service' }, true);
+  const editedCase = (await request(casePath, 'PATCH', editorPayload, 200, 'admin')).item;
+  assert.equal(editedCase.service._id, managedService._id);
+  assert.equal(editedCase.summary, editorPayload.summary);
   const publishedCase = (await request(casePath, 'PATCH', { title: 'Reviewed case', isPublished: true, publishedAt: '2000-01-01' }, 200, 'admin')).item;
   assert.equal(publishedCase.slug, 'reviewed-case');
   assert.ok(new Date(publishedCase.publishedAt).getFullYear() > 2000);
